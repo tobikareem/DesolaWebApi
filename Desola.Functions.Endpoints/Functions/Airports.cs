@@ -10,8 +10,14 @@ using Newtonsoft.Json;
 
 namespace Desola.Functions.Endpoints.Functions;
 
-public class Airports(ILogger<Airports> logger)
+public class Airports
 {
+    private readonly ILogger<Airports> _logger;
+
+    public Airports(ILogger<Airports> logger)
+    {
+        _logger = logger;
+    }
 
     [Function("Airports")]
     [OpenApiOperation(operationId: "Run", tags: new[] { "name" })]
@@ -21,7 +27,7 @@ public class Airports(ILogger<Airports> logger)
 
     public async Task<IActionResult> Run([HttpTrigger(AuthorizationLevel.Function, "get", "post", Route = "airport/codes")] HttpRequest req)
     {
-        logger.LogInformation("C# HTTP trigger function processed a request.");
+        _logger.LogInformation("C# HTTP trigger function processed a request.");
 
         var name = "Desola";
 

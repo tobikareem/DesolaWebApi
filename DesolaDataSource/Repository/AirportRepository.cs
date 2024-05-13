@@ -7,8 +7,15 @@ using Microsoft.Extensions.Configuration;
 
 namespace DesolaDataSource.Repository;
 
-public class AirportRepository(IBlobStorageRepository blobStorageRepository, IConfiguration configuration) : IAirportRepository
+public class AirportRepository: IAirportRepository
 {
+    private readonly IConfiguration _configuration;
+    private readonly IBlobStorageRepository _blobStorageRepository;
+    public AirportRepository(IConfiguration configuration, IBlobStorageRepository blobStorageRepository)
+    {
+        _configuration = configuration;
+        _blobStorageRepository = blobStorageRepository;
+    }
     public async Task<IEnumerable<Airport>> GetAirportsAsync()
     {
         return await Task.Run(GetAllAirports);
@@ -16,9 +23,9 @@ public class AirportRepository(IBlobStorageRepository blobStorageRepository, ICo
 
     private async Task<List<Airport>> GetAllAirports()
     {
-        var fileName = configuration["FileName"];
-        var containerName = configuration["ContainerName"];
-        var stream = await blobStorageRepository.DownloadBlobAsStreamAsync(fileName, containerName);
+        var fileName = _configuration["FileName"];
+        var containerName = _configuration["ContainerName"];
+        var stream = await _blobStorageRepository.DownloadBlobAsStreamAsync(fileName, containerName);
 
         var airport = await Task.Run(() => GetAirportsAsync(stream));
 
