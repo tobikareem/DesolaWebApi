@@ -5,11 +5,18 @@ using Microsoft.Extensions.Logging;
 
 namespace DesolaMemoryCache;
 
-public class CacheService(IMemoryCache cache, ILogger<CacheService> logger) : ICacheService
+public class CacheService : ICacheService
 {
+    private readonly IMemoryCache _memoryCache;
+    private readonly ILogger _logger;
+    public CacheService(IMemoryCache cache, ILogger<CacheService> logger)
+    {
+        _memoryCache = cache;
+        _logger = logger;
+    }
     public void Add<T>(CacheEntry key, T item, int duration)
     {
-        cache.Set(key, item, new MemoryCacheEntryOptions
+        _memoryCache.Set(key, item, new MemoryCacheEntryOptions
         {
             AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(duration)
         });
@@ -17,32 +24,32 @@ public class CacheService(IMemoryCache cache, ILogger<CacheService> logger) : IC
 
     public T? GetItem<T>(CacheEntry key)
     {
-        return cache.Get<T>(key);
+        return _memoryCache.Get<T>(key);
     }
 
     private T? Get<T>(CacheEntry key)
     {
-        return cache.Get<T>(key);
+        return _memoryCache.Get<T>(key);
     }
 
     public bool Contains(CacheEntry key)
     {
-        return cache.TryGetValue(key, out _);
+        return _memoryCache.TryGetValue(key, out _);
     }
 
     public void Remove(CacheEntry key)
     {
-        cache.Remove(key);
+        _memoryCache.Remove(key);
     }
 
     public T? GetOrCreate<T>(CacheEntry key, Func<T> createItem, int duration)
     {
-        if (cache.TryGetValue(key, out T? item))
+        if (_memoryCache.TryGetValue(key, out T? item))
         {
             return item;
         }
 
-        logger.LogInformation($"Cache miss for key {key}. Item will be created.");
+        _logger.LogInformation($"Cache miss for key {key}. Item will be created.");
 
         try
         {
@@ -51,7 +58,7 @@ public class CacheService(IMemoryCache cache, ILogger<CacheService> logger) : IC
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Failed to create item for cache.");
+            _logger.LogError(ex, "Failed to create item for _memoryCache.");
             throw;
         }
 

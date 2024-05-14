@@ -7,14 +7,16 @@ using Microsoft.Extensions.Configuration;
 
 namespace DesolaDataSource.Repository;
 
-public class AirportRepository: IAirportRepository
+public class AirportRepository : IAirportRepository
 {
     private readonly IConfiguration _configuration;
     private readonly IBlobStorageRepository _blobStorageRepository;
-    public AirportRepository(IConfiguration configuration, IBlobStorageRepository blobStorageRepository)
+    private readonly ICacheService _cacheService;
+    public AirportRepository(IConfiguration configuration, IBlobStorageRepository blobStorageRepository, ICacheService cacheService)
     {
         _configuration = configuration;
         _blobStorageRepository = blobStorageRepository;
+        _cacheService=cacheService;
     }
     public async Task<IEnumerable<Airport>> GetAirportsAsync()
     {
@@ -23,13 +25,21 @@ public class AirportRepository: IAirportRepository
 
     private async Task<List<Airport>> GetAllAirports()
     {
-        var fileName = _configuration["FileName"];
-        var containerName = _configuration["ContainerName"];
-        var stream = await _blobStorageRepository.DownloadBlobAsStreamAsync(fileName, containerName);
+        if (_cacheService.Contains(CacheEntry.AllAirports))
+        {
+            return _cacheService.GetItem<List<Airport>>(CacheEntry.AllAirports) ?? new List<Airport>();
+        }
 
-        var airport = await Task.Run(() => GetAirportsAsync(stream));
+        var fileName = _configuration["FileName"]?.ToLowerInvariant();
+        var containerName = _configuration["ContainerName"]?.ToLowerInvariant();
 
-        return airport.ToList();
+        var stream =  await _blobStorageRepository.DownloadBlobAsStreamAsync(fileName, containerName);
+
+        var airports = GetAirportsAsync(stream).ToList();
+
+        _cacheService.Add(CacheEntry.AllAirports, airports, 600);
+
+        return airports;
     }
 
     private static ConcurrentBag<Airport> GetAirportsAsync(Stream stream)
