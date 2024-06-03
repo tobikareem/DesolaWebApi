@@ -7,16 +7,13 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="CaptainOath.DataStore" Version="2.0.4" />
-    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="8.0.0" />
+    <PackageReference Include="CaptainOath.DataStore" Version="2.0.1" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.1" />
     <PackageReference Include="Microsoft.Extensions.Caching.Abstractions" Version="8.0.0" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\DesolaDataSource\DesolaDataSource.csproj" />
     <ProjectReference Include="..\DesolaDomain\DesolaDomain.csproj" />
-    <ProjectReference Include="..\DesolaMemoryCache\DesolaMemoryCache.csproj" />
   </ItemGroup>
 
 </Project>

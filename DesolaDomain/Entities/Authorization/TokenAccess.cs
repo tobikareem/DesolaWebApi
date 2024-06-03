@@ -1,8 +1,8 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace DesolaDomain.Model.Authorization;
+namespace DesolaDomain.Entities.Authorization;
 
-public class TokenInfo
+public class TokenAccess
 {
     [JsonPropertyName("type")]
     public string Type;
@@ -31,5 +31,3 @@ public class TokenInfo
     [JsonPropertyName("scope")]
     public string Scope;
 }
-
-
