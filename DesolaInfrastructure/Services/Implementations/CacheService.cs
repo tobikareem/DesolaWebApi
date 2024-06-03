@@ -1,10 +1,9 @@
-﻿
-using DesolaDomain.Interfaces;
+﻿using DesolaDomain.Interfaces;
 using DesolaDomain.Model;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 
-namespace DesolaMemoryCache;
+namespace DesolaInfrastructure.Services.Implementations;
 
 public class CacheService : ICacheService
 {

@@ -15,9 +15,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DesolaDomain", "DesolaDomai
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DesolaInfrastructure", "DesolaInfrastructure\DesolaInfrastructure.csproj", "{8161FB04-DEB3-48C0-961A-D5D345963EFB}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DesolaServices", "DesolaServices\DesolaServices.csproj", "{92F83564-8FC0-4355-8413-1FF80ABCD07A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DesolaServices", "DesolaServices\DesolaServices.csproj", "{92F83564-8FC0-4355-8413-1FF80ABCD07A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Desola.Common", "Desola.SharedKernel\Desola.Common.csproj", "{8D3A0DB7-44F5-4A87-BEBB-5E0F09428CC9}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Desola.Common", "Desola.SharedKernel\Desola.Common.csproj", "{8D3A0DB7-44F5-4A87-BEBB-5E0F09428CC9}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SharedKernel", "SharedKernel", "{0C66995C-9AC7-4B3D-9000-00E7AE1F7072}"
 EndProject
