@@ -1,6 +1,6 @@
 ﻿using DesolaDomain.Model;
 
-namespace DesolaDomain.Interface;
+namespace DesolaDomain.Interfaces;
 
 public interface ICacheService
 {

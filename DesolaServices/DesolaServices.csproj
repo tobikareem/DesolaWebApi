@@ -6,4 +6,13 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <Folder Include="DataTransferObjects\" />
+    <Folder Include="Interfaces\" />
+    <Folder Include="Commands\" />
+    <Folder Include="Handler\" />
+    <Folder Include="Queries\" />
+    <Folder Include="Services\" />
+  </ItemGroup>
+
 </Project>

@@ -16,4 +16,11 @@
     <ProjectReference Include="..\DesolaDomain\DesolaDomain.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Data\" />
+    <Folder Include="External\" />
+    <Folder Include="Services\Identity\Authentication\" />
+    <Folder Include="Services\Implementations\" />
+  </ItemGroup>
+
 </Project>

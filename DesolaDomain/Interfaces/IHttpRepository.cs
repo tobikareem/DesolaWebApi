@@ -1,4 +1,4 @@
-﻿namespace DesolaDomain.Interface;
+﻿namespace DesolaDomain.Interfaces;
 
 public interface IHttpRepository
 {

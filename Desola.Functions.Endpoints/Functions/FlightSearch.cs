@@ -1,4 +1,4 @@
-using DesolaDomain.Interface;
+using DesolaDomain.Interfaces;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
