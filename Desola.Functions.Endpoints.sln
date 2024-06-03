@@ -7,7 +7,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Desola.Functions.Endpoints"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Infrastructure", "Infrastructure", "{1D35590D-4E46-4597-8937-F3EC185650B1}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Data", "Data", "{2ABD37F9-3742-4840-8654-B02B5F9B3F5F}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Application", "Application", "{2ABD37F9-3742-4840-8654-B02B5F9B3F5F}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DesolaDataSource", "DesolaDataSource\DesolaDataSource.csproj", "{36A57941-0427-42F7-B601-3C8462F073E5}"
 EndProject
@@ -17,7 +17,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DesolaDomain", "DesolaDomai
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DesolaInfrastructure", "DesolaInfrastructure\DesolaInfrastructure.csproj", "{8161FB04-DEB3-48C0-961A-D5D345963EFB}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DesolaMemoryCache", "DesolaMemoryCache\DesolaMemoryCache.csproj", "{15B9F4D5-B420-4B0F-869E-0604E8BC4252}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DesolaMemoryCache", "DesolaMemoryCache\DesolaMemoryCache.csproj", "{15B9F4D5-B420-4B0F-869E-0604E8BC4252}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DesolaServices", "DesolaServices\DesolaServices.csproj", "{92F83564-8FC0-4355-8413-1FF80ABCD07A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -45,6 +47,10 @@ Global
 		{15B9F4D5-B420-4B0F-869E-0604E8BC4252}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{15B9F4D5-B420-4B0F-869E-0604E8BC4252}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{15B9F4D5-B420-4B0F-869E-0604E8BC4252}.Release|Any CPU.Build.0 = Release|Any CPU
+		{92F83564-8FC0-4355-8413-1FF80ABCD07A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{92F83564-8FC0-4355-8413-1FF80ABCD07A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{92F83564-8FC0-4355-8413-1FF80ABCD07A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{92F83564-8FC0-4355-8413-1FF80ABCD07A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -54,6 +60,7 @@ Global
 		{E90B9BFC-2734-42FB-9077-7318E3DF4302} = {64E26956-0C78-409D-8AAB-87F9EF37D699}
 		{8161FB04-DEB3-48C0-961A-D5D345963EFB} = {1D35590D-4E46-4597-8937-F3EC185650B1}
 		{15B9F4D5-B420-4B0F-869E-0604E8BC4252} = {2ABD37F9-3742-4840-8654-B02B5F9B3F5F}
+		{92F83564-8FC0-4355-8413-1FF80ABCD07A} = {2ABD37F9-3742-4840-8654-B02B5F9B3F5F}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {87B2535C-63B0-496E-8E08-A54F0465BF8E}

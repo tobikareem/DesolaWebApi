@@ -4,5 +4,5 @@ namespace DesolaDomain.Interface;
 
 public interface IAirportRepository
 {
-    public Task<IEnumerable<Airport>> GetAirportsAsync();
+    public Task<List<Airport>> GetAirportsAsync();
 }

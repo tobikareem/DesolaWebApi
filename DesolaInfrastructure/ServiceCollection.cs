@@ -16,14 +16,14 @@ namespace DesolaInfrastructure
 
             services.AddSingleton<ICacheService, CacheService>();
 
-            var userAssignedClientId = configuration["UserAssignedManagedIdentityClientId"];
+            var connectionString = configuration["BlobUri"];
 
-            var accountEndpointUrl = $"https://{configuration["StorageAccountName"]}.blob.core.windows.net/{configuration["ContainerName"]}";
-            services.AddBlobStorageUserAssignedManagedIdentity(accountEndpointUrl, userAssignedClientId);
+            services.AddBlobClientUri(connectionString);
             return services;
         }
 
+        
     }
 
-  
+
 }

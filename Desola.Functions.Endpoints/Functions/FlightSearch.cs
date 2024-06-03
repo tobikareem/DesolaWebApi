@@ -17,13 +17,12 @@ public class FlightSearch
     }
     
     [Function("FlightSearch")]
-    public async Task<IActionResult> Run([HttpTrigger(AuthorizationLevel.Function, "get", "post", Route = "flight/search")] HttpRequest req)
+    public async Task<IActionResult> Run([HttpTrigger("get", "post", Route = "flight/search")] HttpRequest req)
     {
         _logger.LogInformation("C# HTTP trigger function processed a request.");
 
         var flights = await _airportRepository.GetAirportsAsync();
 
-
-        return new OkObjectResult("Welcome to Azure Functions!");
+        return new OkObjectResult(flights);
     }
 }
