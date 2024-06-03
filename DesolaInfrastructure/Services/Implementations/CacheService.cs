@@ -1,5 +1,5 @@
-﻿using DesolaDomain.Interfaces;
-using DesolaDomain.Model;
+﻿using DesolaDomain.Enums;
+using DesolaDomain.Interfaces;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 

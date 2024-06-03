@@ -1,9 +1,12 @@
-﻿using CaptainOath.DataStore.Extension;
+﻿using amadeus;
+using CaptainOath.DataStore.Extension;
 using DesolaDomain.Interfaces;
 using DesolaInfrastructure.Data;
+using DesolaInfrastructure.External;
 using DesolaInfrastructure.Services.Implementations;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace DesolaInfrastructure
 {
@@ -19,6 +22,19 @@ namespace DesolaInfrastructure
             var connectionString = configuration["BlobUri"];
 
             services.AddBlobClientUri(connectionString);
+
+            services.AddScoped<IAmadeusService, AmadeusService>();
+
+            services.AddHttpClient();
+            services.AddScoped<IHttpService, HttpService>();
+            services.AddScoped<IApiService, ApiService>();
+
+            var amadeus = Amadeus
+                .builder(configuration["Amadeus_client_id"], configuration["Amadeus_client_secret"])
+                .build();
+            services.AddSingleton(amadeus);
+
+
             return services;
         }
 

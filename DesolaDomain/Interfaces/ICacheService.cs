@@ -1,4 +1,4 @@
-﻿using DesolaDomain.Model;
+﻿using DesolaDomain.Enums;
 
 namespace DesolaDomain.Interfaces;
 

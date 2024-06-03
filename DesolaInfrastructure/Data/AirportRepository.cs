@@ -2,6 +2,7 @@
 using CaptainOath.DataStore.Interface;
 using CsvHelper;
 using CsvHelper.Configuration;
+using DesolaDomain.Enums;
 using DesolaDomain.Interfaces;
 using DesolaDomain.Model;
 

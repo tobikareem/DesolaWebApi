@@ -4,6 +4,7 @@ using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Models;
 using System.Net;
+using DesolaDomain.Interfaces;
 using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Attributes;
 using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Enums;
 using Newtonsoft.Json;
@@ -13,10 +14,13 @@ namespace Desola.Functions.Endpoints.Functions;
 public class Airports
 {
     private readonly ILogger<Airports> _logger;
+    private readonly IAirportRepository _airportRepository;
 
-    public Airports(ILogger<Airports> logger)
+
+    public Airports(ILogger<Airports> logger, IAirportRepository airportRepository)
     {
         _logger = logger;
+        _airportRepository = airportRepository;
     }
 
     [Function("Airports")]
@@ -25,20 +29,12 @@ public class Airports
     [OpenApiParameter(name: "name", In = ParameterLocation.Query, Required = true, Type = typeof(string), Description = "The **Name** parameter")]
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "text/plain", bodyType: typeof(string), Description = "The OK response")]
 
-    public async Task<IActionResult> Run([HttpTrigger(AuthorizationLevel.Function, "get", "post", Route = "airport/codes")] HttpRequest req)
+    public async Task<IActionResult> Run([HttpTrigger(AuthorizationLevel.Function, "get", "post", Route = "airports")] HttpRequest req)
     {
         _logger.LogInformation("C# HTTP trigger function processed a request.");
 
-        var name = "Desola";
+        var airports = await _airportRepository.GetAirportsAsync();
 
-        var requestBody = await new StreamReader(req.Body).ReadToEndAsync();
-        dynamic data = JsonConvert.DeserializeObject(requestBody);
-        name = (name ?? data?.name) ?? string.Empty;
-
-        var responseMessage = string.IsNullOrEmpty(name)
-            ? "This HTTP triggered function executed successfully. Pass a name in the query string or in the request body for a personalized response."
-            : $"Hello, {name}. This HTTP triggered function executed successfully.";
-
-        return new OkObjectResult(responseMessage); // Linette August -> 8014497484
+        return new OkObjectResult(airports);
     }
 }

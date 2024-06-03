@@ -20,6 +20,7 @@
   <ItemGroup>
     <ProjectReference Include="..\DesolaDomain\DesolaDomain.csproj" />
     <ProjectReference Include="..\DesolaInfrastructure\DesolaInfrastructure.csproj" />
+    <ProjectReference Include="..\DesolaServices\DesolaServices.csproj" />
   </ItemGroup>
   <ItemGroup>
     <None Update="host.json">
