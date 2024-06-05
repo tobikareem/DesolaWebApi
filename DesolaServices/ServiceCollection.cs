@@ -13,6 +13,7 @@ namespace DesolaServices
         {
 
             services.AddScoped<IFlightSearchService, FlightSearchService>();
+            services.AddScoped<IAirlineRouteService, AirlineRouteService>();
 
             services.AddMediatR(config => config.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly()));
 
