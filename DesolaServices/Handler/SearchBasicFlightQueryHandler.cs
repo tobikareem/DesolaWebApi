@@ -1,11 +1,12 @@
 ﻿using DesolaDomain.Aggregates;
 using DesolaServices.Commands.Queries;
+using DesolaServices.DataTransferObjects.Responses;
 using DesolaServices.Interfaces;
 using MediatR;
 
 namespace DesolaServices.Handler;
 
-public class SearchBasicFlightQueryHandler : IRequestHandler<SearchBasicFlightQuery, FlightOffer>
+public class SearchBasicFlightQueryHandler : IRequestHandler<SearchBasicFlightQuery, Dictionary<string, FlightItineraryGroupResponse>>
 {
 
     private readonly IFlightSearchService _flightSearchService;
@@ -15,7 +16,7 @@ public class SearchBasicFlightQueryHandler : IRequestHandler<SearchBasicFlightQu
         _flightSearchService = flightSearchService;
     }
 
-    public async Task<FlightOffer> Handle(SearchBasicFlightQuery request, CancellationToken cancellationToken)
+    public async Task<Dictionary<string, FlightItineraryGroupResponse>> Handle(SearchBasicFlightQuery request, CancellationToken cancellationToken)
     {
         return await _flightSearchService.SearchFlightsAsync(request.Criteria);
     }

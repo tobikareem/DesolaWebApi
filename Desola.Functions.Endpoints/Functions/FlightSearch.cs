@@ -26,14 +26,14 @@ public class FlightSearch
         _logger.LogInformation("C# HTTP trigger function processed a request.");
 
         var requestBody = await new StreamReader(req.Body).ReadToEndAsync();
-        var data = JsonConvert.DeserializeObject<FlightSearchBasic>(requestBody);
+        var data = JsonConvert.DeserializeObject<FlightSearchBasicRequest>(requestBody);
 
         if (data == null)
         {
             throw new ArgumentNullException(nameof(data));
         }
 
-        var response = await _mediator.Send(new SearchBasicFlightQuery(new FlightSearchBasic
+        var response = await _mediator.Send(new SearchBasicFlightQuery(new FlightSearchBasicRequest
         {
             Adults = data.Adults,
             Origin = data.Origin,
@@ -51,7 +51,7 @@ public class FlightSearch
     {
         _logger.LogInformation("C# HTTP trigger function processed a request.");
         var requestBody = await new StreamReader(req.Body).ReadToEndAsync();
-        var data = JsonConvert.DeserializeObject<FlightSearchAdvanced>(requestBody);
+        var data = JsonConvert.DeserializeObject<FlightSearchAdvancedRequest>(requestBody);
 
         if (data == null)
         {

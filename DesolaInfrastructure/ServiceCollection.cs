@@ -16,12 +16,15 @@ namespace DesolaInfrastructure
         public static IServiceCollection AddDesolaInfrastructure(this IServiceCollection services, IConfiguration configuration)
         {
             services.AddSingleton<IAirportRepository, AirportRepository>();
+            services.AddSingleton<IAirlineRepository, AirlineRepository>();
 
             services.AddSingleton<ICacheService, CacheService>();
 
             var connectionString = configuration["BlobUri"];
 
+            var storageAccountConnectionString = configuration["AzureStorageAccountConnectionString"];
             services.AddBlobClientUri(connectionString);
+            services.AddBlobStorageClientUsingConnectionString(storageAccountConnectionString);
 
             services.AddScoped<IAmadeusService, AmadeusService>();
 

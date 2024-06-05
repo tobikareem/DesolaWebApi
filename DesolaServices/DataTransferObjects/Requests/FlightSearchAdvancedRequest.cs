@@ -3,7 +3,7 @@
 namespace DesolaServices.DataTransferObjects.Requests;
 
 
-public class FlightSearchAdvanced
+public class FlightSearchAdvancedRequest
 {
     [JsonPropertyName("currencyCode")]
     public string CurrencyCode { get; set; }
@@ -19,6 +19,9 @@ public class FlightSearchAdvanced
 
     [JsonPropertyName("searchCriteria")]
     public SearchCriteria SearchCriteria { get; set; }
+
+    public string SortBy { get; set; }
+    public string SortOrder { get; set; }
 }
 
 public class OriginDestination

@@ -1,11 +1,12 @@
 ﻿using DesolaDomain.Aggregates;
 using DesolaServices.DataTransferObjects.Requests;
+using DesolaServices.DataTransferObjects.Responses;
 
 namespace DesolaServices.Interfaces;
 
 public interface IFlightSearchService
 {
-    Task<FlightOffer> SearchFlightsAsync(FlightSearchBasic criteria);
+    Task<Dictionary<string, FlightItineraryGroupResponse>> SearchFlightsAsync(FlightSearchBasicRequest criteria);
 
-    Task<FlightOffer> SearchAdvancedFlightsAsync(FlightSearchAdvanced criteria);
+    Task<FlightOffer> SearchAdvancedFlightsAsync(FlightSearchAdvancedRequest criteria);
 }

@@ -1,6 +1,6 @@
 ﻿namespace Desola.Common;
 
-public class DateTimeHelper
+public static class DateTimeHelper
 {
     public static DateTime UnixEpoch()
     {
@@ -20,6 +20,11 @@ public class DateTimeHelper
     public static long CurrentUnixTimeMillis()
     {
         return ToMillisecondsSinceUnixEpoch(DateTime.Now);
+    }
+
+    public static DateTime ToDateTime(this DateTimeOffset dateTimeOffset)
+    {
+        return dateTimeOffset.UtcDateTime;
     }
 
 }
