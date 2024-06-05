@@ -4,6 +4,7 @@ using DesolaServices.Interfaces;
 using System.Web;
 using DesolaDomain.Interfaces;
 using Microsoft.Extensions.Configuration;
+using DesolaDomain.Aggregates;
 
 namespace DesolaServices.Services;
 
@@ -20,7 +21,7 @@ public class AirlineRouteService : IAirlineRouteService
         _airlineRepository = airlineRepository;
     }
 
-    public async Task<List<Location>> GetAirportRoutesAsync(string airlineCode, int max)
+    public async Task<List<RouteLocation>> GetAirportRoutesAsync(string airlineCode, int max)
     {
 
         await ValidateAirlineCodeAsync(airlineCode);
@@ -34,7 +35,9 @@ public class AirlineRouteService : IAirlineRouteService
             Headers = { { "Authorization", $"{accessToken}" } }
         };
 
-        var response = await _apiService.SendAsync<List<Location>>(request);
+        var airportRoute = await _apiService.SendAsync<AirportRoute>(request);
+
+        var response = airportRoute.Data;
 
         return response;
     }
@@ -51,7 +54,7 @@ public class AirlineRouteService : IAirlineRouteService
 
     private Uri BuildSearchUri(string airlineCode, int max = 20)
     {
-        var builder = new UriBuilder(_configuration["AmadeusApi_BaseUrl"] + "/v1/airline");
+        var builder = new UriBuilder(_configuration["AmadeusApi_BaseUrl"] + "/v1/airline/destinations");
         var query = HttpUtility.ParseQueryString(string.Empty);
         query["airlineCode"] = airlineCode;
         query["max"] = max.ToString();

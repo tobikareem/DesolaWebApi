@@ -59,7 +59,9 @@ public class ApiService : IApiService
         try
         {
             var response = await _httpService.SendAsync(request);
-            return JsonSerializer.Deserialize<T>(response) ?? throw new InvalidOperationException("Failed to deserialize response");
+            var ser = JsonSerializer.Deserialize<T>(response) ?? throw new InvalidOperationException("Failed to deserialize response");
+
+            return ser;
         }
         catch (Exception ex)
         {

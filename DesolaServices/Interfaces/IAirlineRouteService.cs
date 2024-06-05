@@ -1,8 +1,9 @@
 ﻿using amadeus.resources;
+using DesolaDomain.Aggregates;
 
 namespace DesolaServices.Interfaces;
 
 public interface IAirlineRouteService
 {
-    Task<List<Location>> GetAirportRoutesAsync(string airlineCode, int max);
+    Task<List<RouteLocation>> GetAirportRoutesAsync(string airlineCode, int max);
 }
