@@ -1,9 +1,13 @@
 ﻿
+using System.Text;
+using System.Text.Json;
 using DesolaDomain.Aggregates;
 using DesolaServices.DataTransferObjects.Requests;
 using DesolaServices.Interfaces;
 using System.Web;
+using AutoMapper;
 using DesolaDomain.Interfaces;
+using DesolaServices.DataTransferObjects.Responses;
 using Microsoft.Extensions.Configuration;
 
 namespace DesolaServices.Services;
@@ -13,13 +17,14 @@ internal class FlightSearchService : IFlightSearchService
     private readonly IApiService _apiService;
     private readonly IConfiguration _configuration;
     private readonly IAmadeusService _amadeusService;
-    
+    private readonly IMapper _mapper;
 
-    public FlightSearchService(IApiService apiService, IConfiguration configuration, IAmadeusService amadeusService)
+    public FlightSearchService(IApiService apiService, IConfiguration configuration, IAmadeusService amadeusService, IMapper mapper)
     {
         _apiService = apiService;
         _configuration = configuration;
         _amadeusService = amadeusService;
+        _mapper = mapper;
     }
     public async Task<FlightOffer> SearchFlightsAsync(FlightSearchBasic criteria)
     {
@@ -35,13 +40,39 @@ internal class FlightSearchService : IFlightSearchService
 
         var response = await _apiService.SendAsync<FlightOffer>(request);
 
+        SearchFlightWithLegs(response);
+
         return response;
     }
 
-    public async Task<amadeus.resources.FlightOffer[]> SearchAdvancedFlightsAsync(FlightSearchAdvanced criteria)
+    public void SearchFlightWithLegs(FlightOffer flightOffer)
     {
-       throw new NotImplementedException();
+        var flightSearchResponse = _mapper.Map<FlightSearchResponse>(flightOffer);
+
     }
+
+
+    public async Task<FlightOffer> SearchAdvancedFlightsAsync(FlightSearchAdvanced criteria)
+    {
+        var uri = new Uri(_configuration["AmadeusApi_BaseUrl"] + "/v2/shopping/flight-offers");
+        var accessToken = await _apiService.FetchAccessTokenAsync();
+
+        var requestContent = new StringContent(JsonSerializer.Serialize(criteria), Encoding.UTF8, "application/json");
+
+        var request = new HttpRequestMessage(HttpMethod.Post, uri)
+        {
+            Content = requestContent,
+            Headers =
+            {
+                { "Authorization", $"Bearer {accessToken}" },
+                { "X-HTTP-Method-Override", "GET" }
+            }
+        };
+
+        var response = await _apiService.SendAsync<FlightOffer>(request);
+        return response;
+    }
+
 
     private Uri BuildSearchUri(FlightSearchBasic criteria)
     {
@@ -56,7 +87,7 @@ internal class FlightSearchService : IFlightSearchService
         }
         query["adults"] = criteria.Adults.ToString();
         query["max"] = criteria.MaxResults.ToString();
-        builder.Query = query.ToString();
+        builder.Query = query.ToString() ?? string.Empty;
         return builder.Uri;
     }
 }

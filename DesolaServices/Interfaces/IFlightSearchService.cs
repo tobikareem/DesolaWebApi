@@ -7,5 +7,5 @@ public interface IFlightSearchService
 {
     Task<FlightOffer> SearchFlightsAsync(FlightSearchBasic criteria);
 
-    Task<amadeus.resources.FlightOffer[]> SearchAdvancedFlightsAsync(FlightSearchAdvanced criteria);
+    Task<FlightOffer> SearchAdvancedFlightsAsync(FlightSearchAdvanced criteria);
 }

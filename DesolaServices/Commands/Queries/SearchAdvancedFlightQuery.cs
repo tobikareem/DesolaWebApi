@@ -2,9 +2,9 @@
 using DesolaServices.DataTransferObjects.Requests;
 using MediatR;
 
-namespace DesolaServices.Queries;
+namespace DesolaServices.Commands.Queries;
 
-public class SearchAdvancedFlightQuery (FlightSearchAdvanced criteria): IRequest<amadeus.resources.FlightOffer[]>
+public class SearchAdvancedFlightQuery(FlightSearchAdvanced criteria) : IRequest<amadeus.resources.FlightOffer[]>
 {
     public FlightSearchAdvanced Criteria { get; } = criteria;
 }

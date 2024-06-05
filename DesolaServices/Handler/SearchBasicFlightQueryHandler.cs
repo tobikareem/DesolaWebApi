@@ -1,6 +1,6 @@
 ﻿using DesolaDomain.Aggregates;
+using DesolaServices.Commands.Queries;
 using DesolaServices.Interfaces;
-using DesolaServices.Queries;
 using MediatR;
 
 namespace DesolaServices.Handler;

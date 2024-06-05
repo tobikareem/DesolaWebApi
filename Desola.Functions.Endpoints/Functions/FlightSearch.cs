@@ -3,10 +3,10 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
-using DesolaServices.Queries;
 using MediatR;
 using Newtonsoft.Json;
 using amadeus;
+using DesolaServices.Commands.Queries;
 
 namespace Desola.Functions.Endpoints.Functions;
 

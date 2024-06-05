@@ -1,5 +1,5 @@
-﻿using DesolaServices.Interfaces;
-using DesolaServices.Queries;
+﻿using DesolaServices.Commands.Queries;
+using DesolaServices.Interfaces;
 using MediatR;
 
 namespace DesolaServices.Handler;

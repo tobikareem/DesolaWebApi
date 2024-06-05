@@ -15,6 +15,8 @@ namespace DesolaServices
             services.AddScoped<IFlightSearchService, FlightSearchService>();
 
             services.AddMediatR(config => config.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly()));
+
+            services.AddAutoMapper(Assembly.GetExecutingAssembly());
             return services;
         }
     }

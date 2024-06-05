@@ -2,7 +2,7 @@
 using DesolaServices.DataTransferObjects.Requests;
 using MediatR;
 
-namespace DesolaServices.Queries;
+namespace DesolaServices.Commands.Queries;
 
 public class SearchBasicFlightQuery(FlightSearchBasic criteria) : IRequest<FlightOffer>
 {
