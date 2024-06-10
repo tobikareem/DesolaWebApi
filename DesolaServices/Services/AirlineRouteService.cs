@@ -2,9 +2,11 @@
 using amadeus.resources;
 using DesolaServices.Interfaces;
 using System.Web;
+using AutoMapper;
 using DesolaDomain.Interfaces;
 using Microsoft.Extensions.Configuration;
 using DesolaDomain.Aggregates;
+using DesolaServices.DataTransferObjects.Responses;
 
 namespace DesolaServices.Services;
 
@@ -13,15 +15,17 @@ public class AirlineRouteService : IAirlineRouteService
     private readonly IConfiguration _configuration;
     private readonly IApiService _apiService;
     private readonly IAirlineRepository _airlineRepository;
+    private readonly IMapper _mapper;
 
-    public AirlineRouteService(IConfiguration configuration, IApiService apiService, IAirlineRepository airlineRepository)
+    public AirlineRouteService(IConfiguration configuration, IApiService apiService, IAirlineRepository airlineRepository, IMapper mapper)
     {
         _configuration = configuration;
         _apiService = apiService;
         _airlineRepository = airlineRepository;
+        _mapper = mapper;
     }
 
-    public async Task<List<RouteLocation>> GetAirportRoutesAsync(string airlineCode, int max)
+    public async Task<List<FlightRouteResponse>> GetAirportRoutesAsync(string airlineCode, int max)
     {
 
         await ValidateAirlineCodeAsync(airlineCode);
@@ -37,7 +41,7 @@ public class AirlineRouteService : IAirlineRouteService
 
         var airportRoute = await _apiService.SendAsync<AirportRoute>(request);
 
-        var response = airportRoute.Data;
+        var response = _mapper.Map<List<FlightRouteResponse>>(airportRoute.Data);
 
         return response;
     }

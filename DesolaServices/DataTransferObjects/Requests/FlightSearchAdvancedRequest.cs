@@ -22,6 +22,8 @@ public class FlightSearchAdvancedRequest
 
     public string SortBy { get; set; }
     public string SortOrder { get; set; }
+
+    public int MaxNumberOfStopOver { get; set; }
 }
 
 public class OriginDestination
@@ -45,7 +47,7 @@ public class DepartureDateTimeRange
     public string Date { get; set; }
 
     [JsonPropertyName("time")]
-    public DateTimeOffset Time { get; set; }
+    public string Time { get; set; }
 }
 
 public class SearchCriteria

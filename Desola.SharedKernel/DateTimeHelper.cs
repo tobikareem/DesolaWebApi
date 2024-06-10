@@ -22,9 +22,9 @@ public static class DateTimeHelper
         return ToMillisecondsSinceUnixEpoch(DateTime.Now);
     }
 
-    public static DateTime ToDateTime(this DateTimeOffset dateTimeOffset)
+    public static string ToDateTime(this DateTimeOffset dateTimeOffset)
     {
-        return dateTimeOffset.UtcDateTime;
+        return dateTimeOffset.ToLocalTime().ToString("F");
     }
 
 }

@@ -1,10 +1,10 @@
-﻿using DesolaDomain.Aggregates;
-using DesolaServices.DataTransferObjects.Requests;
+﻿using DesolaServices.DataTransferObjects.Requests;
+using DesolaServices.DataTransferObjects.Responses;
 using MediatR;
 
 namespace DesolaServices.Commands.Queries;
 
-public class SearchAdvancedFlightQuery(FlightSearchAdvancedRequest criteria) : IRequest<FlightOffer>
+public class SearchAdvancedFlightQuery(FlightSearchAdvancedRequest criteria) : IRequest<Dictionary<string, FlightItineraryGroupResponse>>
 {
     public FlightSearchAdvancedRequest Criteria { get; } = criteria;
 }

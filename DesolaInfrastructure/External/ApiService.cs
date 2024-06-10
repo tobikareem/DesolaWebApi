@@ -1,11 +1,9 @@
-﻿using System.Net.Http;
-using System.Text.Json;
-using amadeus;
-using DesolaDomain.Aggregates;
+﻿using amadeus;
 using DesolaDomain.Entities.Authorization;
 using DesolaDomain.Enums;
 using DesolaDomain.Interfaces;
 using Microsoft.Extensions.Configuration;
+using Newtonsoft.Json;
 
 namespace DesolaInfrastructure.External;
 
@@ -45,7 +43,12 @@ public class ApiService : IApiService
 
 
         var jsonContent = await _httpService.PostAsync(url, headers, content);
-        tokenData = JsonSerializer.Deserialize<TokenAccess>(jsonContent) ?? throw new InvalidOperationException("Failed to deserialize token data");
+        tokenData = System.Text.Json.JsonSerializer.Deserialize<TokenAccess>(jsonContent) ?? throw new InvalidOperationException("Failed to deserialize token data");
+
+        if (string.IsNullOrWhiteSpace(tokenData.AccessToken))
+        {
+            throw new InvalidOperationException("Failed to get access token");
+        }
 
         _cacheService.Add(CacheEntry.AccessToken, tokenData, tokenData.ExpiresIn - 300); // 300 seconds buffer
 
@@ -56,18 +59,7 @@ public class ApiService : IApiService
 
     public async Task<T> SendAsync<T>(HttpRequestMessage request)
     {
-        try
-        {
-            var response = await _httpService.SendAsync(request);
-            var ser = JsonSerializer.Deserialize<T>(response) ?? throw new InvalidOperationException("Failed to deserialize response");
-
-            return ser;
-        }
-        catch (Exception ex)
-        {
-
-            throw;
-        }
-
+        var response = await _httpService.SendAsync(request);
+        return JsonConvert.DeserializeObject<T>(response) ?? throw new InvalidOperationException("Failed to deserialize response");
     }
 }

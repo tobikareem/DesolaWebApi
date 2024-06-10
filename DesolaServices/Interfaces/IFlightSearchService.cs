@@ -8,5 +8,6 @@ public interface IFlightSearchService
 {
     Task<Dictionary<string, FlightItineraryGroupResponse>> SearchFlightsAsync(FlightSearchBasicRequest criteria);
 
-    Task<FlightOffer> SearchAdvancedFlightsAsync(FlightSearchAdvancedRequest criteria);
+    Task<Dictionary<string, FlightItineraryGroupResponse>> SearchAdvancedFlightsAsync(
+        FlightSearchAdvancedRequest criteria);
 }
