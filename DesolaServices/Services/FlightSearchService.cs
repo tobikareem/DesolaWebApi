@@ -63,6 +63,7 @@ internal class FlightSearchService : IFlightSearchService
             throw;
         }
     }
+
     public async Task<Dictionary<string, FlightItineraryGroupResponse>> SearchAdvancedFlightsAsync(FlightSearchAdvancedRequest criteria)
     {
         try
@@ -109,6 +110,31 @@ internal class FlightSearchService : IFlightSearchService
         }
     }
 
+    public async Task<Dictionary<string, FlightItineraryGroupResponse>> SearchSkyScannerFlightsAsync(FlightSearchBasicRequest criteria)
+    {
+        try
+        {
+            _airports = await _airportRepository.GetAirportsAsync();
+            ValidateAirportCode(criteria.Origin, criteria.Destination);
+            var uri = BuildSkyScannerFlightSearchUri(criteria);
+            var accessToken = _configuration["RapidApi_Key"];
+
+            var request = new HttpRequestMessage(HttpMethod.Get, uri)
+            {
+                Headers = { { "x-rapidapi-key", accessToken } }
+            };
+
+            var response = await _apiService.SendAsync<SkyScannerFlightOffer>(request);
+            var flightSearchResponse = GroupSkyScannerItineraries(response, criteria.SortBy, criteria.SortOrder);
+
+            return flightSearchResponse;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error occurred while searching Sky scanner flights");
+            throw;
+        }
+    }
 
     private void ValidateAirportCode(string origin, string destination)
     {
@@ -126,6 +152,23 @@ internal class FlightSearchService : IFlightSearchService
         {
             throw new ArgumentException("Invalid destination airport code", nameof(destination));
         }
+    }
+
+    private Dictionary<string, FlightItineraryGroupResponse> GroupSkyScannerItineraries(SkyScannerFlightOffer flightOffer, string sortBy, string sortOrder)
+    {
+        var itineraries = new Dictionary<string, FlightItineraryGroupResponse>();
+
+        foreach (var data in flightOffer.Data.Itineraries)
+        {
+            var itineraryResponse = _mapper.Map<FlightItineraryResponse>(data);
+            itineraries.Add(Guid.NewGuid().ToString(), new FlightItineraryGroupResponse
+            {
+                Departure = itineraryResponse,
+                Return = null 
+            });
+        }
+
+        return ApplySorting(itineraries, sortBy, sortOrder);
     }
 
     private async Task<Dictionary<string, FlightItineraryGroupResponse>> GroupItineraries(FlightOffer flightOffer, string sortBy, string sortOrder)
@@ -221,6 +264,24 @@ internal class FlightSearchService : IFlightSearchService
         }
         query["adults"] = criteria.Adults.ToString();
         query["max"] = criteria.MaxResults.ToString();
+        builder.Query = query.ToString() ?? string.Empty;
+        return builder.Uri;
+    }
+
+    private Uri BuildSkyScannerFlightSearchUri(FlightSearchBasicRequest criteria)
+    {
+        var builder = new UriBuilder("https://sky-scanner3.p.rapidapi.com/flights/search-roundtrip");
+        var query = HttpUtility.ParseQueryString(string.Empty);
+        query["fromEntityId"] = criteria.Origin;
+        query["toEntityId"] = criteria.Destination;
+        query["departDate"] = criteria.DepartureDate.ToString("yyyy-MM-dd");
+        query["returnDate"] = criteria.ReturnDate?.ToString("yyyy-MM-dd");
+        query["market"] = "US";
+        query["currency"] = "USD";
+        query["stops"] = criteria.Stops ?? "direct,1stop";
+        query["adults"] = criteria.Adults.ToString();
+        query["infants"] = criteria.Infants?.ToString() ?? "0";
+        query["cabinClass"] = criteria.CabinClass ?? "economy";
         builder.Query = query.ToString() ?? string.Empty;
         return builder.Uri;
     }

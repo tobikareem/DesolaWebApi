@@ -9,5 +9,8 @@ public class FlightSearchBasicRequest
     public int Adults { get; set; } = 1;
     public int MaxResults { get; set; } = 5;
     public string SortBy { get; set; } 
-    public string SortOrder { get; set; } 
+    public string SortOrder { get; set; }
+    public string Stops { get; set; }
+    public string Infants { get; set; }
+    public string CabinClass { get; set; }
 }
