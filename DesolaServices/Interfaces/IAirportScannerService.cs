@@ -2,8 +2,8 @@
 
 namespace DesolaServices.Interfaces;
 
-public interface IAirlineRouteService
+public interface IAirportScannerService
 {
-    Task<List<FlightRouteResponse>> GetAirportRoutesAsync(string airlineCode, int max,
+    Task<List<AirportAutoCompleteResponse>> GetAutocompleteResultsAsync(string query,
         CancellationToken cancellationToken);
 }

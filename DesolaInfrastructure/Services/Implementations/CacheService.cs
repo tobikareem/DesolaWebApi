@@ -14,20 +14,15 @@ public class CacheService : ICacheService
         _memoryCache = cache;
         _logger = logger;
     }
-    public void Add<T>(CacheEntry key, T item, int duration)
+    public void Add<T>(CacheEntry key, T item, TimeSpan duration)
     {
         _memoryCache.Set(key, item, new MemoryCacheEntryOptions
         {
-            AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(duration)
+            AbsoluteExpirationRelativeToNow = duration
         });
     }
 
     public T? GetItem<T>(CacheEntry key)
-    {
-        return _memoryCache.Get<T>(key);
-    }
-
-    private T? Get<T>(CacheEntry key)
     {
         return _memoryCache.Get<T>(key);
     }
@@ -42,9 +37,9 @@ public class CacheService : ICacheService
         _memoryCache.Remove(key);
     }
 
-    public T? GetOrCreate<T>(CacheEntry key, Func<T> createItem, int duration)
+    public T GetOrCreate<T>(CacheEntry key, Func<T> createItem, TimeSpan duration)
     {
-        if (_memoryCache.TryGetValue(key, out T? item))
+        if (_memoryCache.TryGetValue(key, out T item))
         {
             return item;
         }

@@ -4,5 +4,6 @@ public enum CacheEntry
 {
     AllAirports,
     AccessToken,
-    AllAirlines
+    AllAirlines,
+    GetAirportsFromSkyScanner
 }

@@ -5,7 +5,6 @@ using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
 using MediatR;
 using Newtonsoft.Json;
-using amadeus;
 using DesolaServices.Commands.Queries;
 
 namespace Desola.Functions.Endpoints.Functions;
@@ -21,11 +20,11 @@ public class FlightSearch
     }
 
     [Function("FlightSearch")]
-    public async Task<IActionResult> RunBasicSearch([HttpTrigger("get", "post", Route = "flight/search")] HttpRequest req, SearchBasicFlightQuery query)
+    public async Task<IActionResult> RunBasicSearch([HttpTrigger("get", "post", Route = "flight/search")] HttpRequest req, SearchBasicFlightQuery query, CancellationToken cancellationToken)
     {
         _logger.LogInformation("C# HTTP trigger function processed a request.");
 
-        var requestBody = await new StreamReader(req.Body).ReadToEndAsync();
+        var requestBody = await new StreamReader(req.Body).ReadToEndAsync(cancellationToken);
         var data = JsonConvert.DeserializeObject<FlightSearchBasicRequest>(requestBody);
 
         if (data == null)
@@ -42,7 +41,7 @@ public class FlightSearch
             ReturnDate = data.ReturnDate,
             MaxResults = data.MaxResults
 
-        }));
+        }), cancellationToken);
         return new OkObjectResult(response);
     }
 

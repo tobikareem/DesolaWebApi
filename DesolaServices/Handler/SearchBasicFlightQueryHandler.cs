@@ -1,5 +1,4 @@
-﻿using DesolaDomain.Aggregates;
-using DesolaServices.Commands.Queries;
+﻿using DesolaServices.Commands.Queries;
 using DesolaServices.DataTransferObjects.Responses;
 using DesolaServices.Interfaces;
 using MediatR;
@@ -18,6 +17,6 @@ public class SearchBasicFlightQueryHandler : IRequestHandler<SearchBasicFlightQu
 
     public async Task<Dictionary<string, FlightItineraryGroupResponse>> Handle(SearchBasicFlightQuery request, CancellationToken cancellationToken)
     {
-        return await _flightSearchService.SearchFlightsAsync(request.Criteria);
+        return await _flightSearchService.SearchFlightsAsync(request.Criteria, cancellationToken);
     }
 }

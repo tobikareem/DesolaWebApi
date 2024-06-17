@@ -1,7 +1,5 @@
 ﻿
 using DesolaDomain.Interfaces;
-using System.Net.Http;
-using System.Text.Json;
 
 namespace DesolaInfrastructure.Services.Implementations
 {
@@ -28,15 +26,15 @@ namespace DesolaInfrastructure.Services.Implementations
             return await response.Content.ReadAsStringAsync();
         }
 
-        public async Task<string> SendAsync(HttpRequestMessage request)
+        public async Task<string> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
 
             var client = _httpClientFactory.CreateClient();
-            var response = await client.SendAsync(request);
+            var response = await client.SendAsync(request, cancellationToken);
 
             response.EnsureSuccessStatusCode();
 
-            return await response.Content.ReadAsStringAsync();
+            return await response.Content.ReadAsStringAsync(cancellationToken);
         }
     }
 }

@@ -34,7 +34,8 @@ internal class FlightSearchService : IFlightSearchService
         _airlineRepository = airlineRepository;
     }
 
-    public async Task<Dictionary<string, FlightItineraryGroupResponse>> SearchFlightsAsync(FlightSearchBasicRequest criteria)
+    public async Task<Dictionary<string, FlightItineraryGroupResponse>> SearchFlightsAsync(
+        FlightSearchBasicRequest criteria, CancellationToken cancellationToken)
     {
         try
         {
@@ -51,7 +52,7 @@ internal class FlightSearchService : IFlightSearchService
                 Headers = { { "Authorization", $"{accessToken}" } }
             };
 
-            var response = await _apiService.SendAsync<FlightOffer>(request);
+            var response = await _apiService.SendAsync<FlightOffer>(request, cancellationToken);
 
             var flightSearchResponse = await GroupItineraries(response, criteria.SortBy, criteria.SortOrder);
 
@@ -64,7 +65,8 @@ internal class FlightSearchService : IFlightSearchService
         }
     }
 
-    public async Task<Dictionary<string, FlightItineraryGroupResponse>> SearchAdvancedFlightsAsync(FlightSearchAdvancedRequest criteria)
+    public async Task<Dictionary<string, FlightItineraryGroupResponse>> SearchAdvancedFlightsAsync(
+        FlightSearchAdvancedRequest criteria, CancellationToken cancellationToken)
     {
         try
         {
@@ -94,7 +96,7 @@ internal class FlightSearchService : IFlightSearchService
                 }
             };
 
-            var response = await _apiService.SendAsync<FlightOffer>(request);
+            var response = await _apiService.SendAsync<FlightOffer>(request, cancellationToken);
 
             var flightSearchResponse = await GroupItineraries(response, criteria.SortBy, criteria.SortOrder);
 
@@ -110,12 +112,11 @@ internal class FlightSearchService : IFlightSearchService
         }
     }
 
-    public async Task<Dictionary<string, FlightItineraryGroupResponse>> SearchSkyScannerFlightsAsync(FlightSearchBasicRequest criteria)
+    public async Task<Dictionary<string, FlightItineraryGroupResponse>> SearchSkyScannerFlightsAsync(SkyScannerFlightRequest criteria, CancellationToken cancellationToken)
     {
         try
         {
             _airports = await _airportRepository.GetAirportsAsync();
-            ValidateAirportCode(criteria.Origin, criteria.Destination);
             var uri = BuildSkyScannerFlightSearchUri(criteria);
             var accessToken = _configuration["RapidApi_Key"];
 
@@ -124,7 +125,7 @@ internal class FlightSearchService : IFlightSearchService
                 Headers = { { "x-rapidapi-key", accessToken } }
             };
 
-            var response = await _apiService.SendAsync<SkyScannerFlightOffer>(request);
+            var response = await _apiService.SendAsync<SkyScannerFlightOffer>(request, cancellationToken);
             var flightSearchResponse = GroupSkyScannerItineraries(response, criteria.SortBy, criteria.SortOrder);
 
             return flightSearchResponse;
@@ -164,7 +165,7 @@ internal class FlightSearchService : IFlightSearchService
             itineraries.Add(Guid.NewGuid().ToString(), new FlightItineraryGroupResponse
             {
                 Departure = itineraryResponse,
-                Return = null 
+                Return = null
             });
         }
 
@@ -268,19 +269,19 @@ internal class FlightSearchService : IFlightSearchService
         return builder.Uri;
     }
 
-    private Uri BuildSkyScannerFlightSearchUri(FlightSearchBasicRequest criteria)
+    private Uri BuildSkyScannerFlightSearchUri(SkyScannerFlightRequest criteria)
     {
         var builder = new UriBuilder("https://sky-scanner3.p.rapidapi.com/flights/search-roundtrip");
         var query = HttpUtility.ParseQueryString(string.Empty);
-        query["fromEntityId"] = criteria.Origin;
-        query["toEntityId"] = criteria.Destination;
-        query["departDate"] = criteria.DepartureDate.ToString("yyyy-MM-dd");
-        query["returnDate"] = criteria.ReturnDate?.ToString("yyyy-MM-dd");
+        query["fromEntityId"] = criteria.FromEntityId;
+        query["toEntityId"] = criteria.ToEntityId;
+        query["departDate"] = criteria.DepartDate;
+        query["returnDate"] = criteria.ReturnDate;
         query["market"] = "US";
         query["currency"] = "USD";
         query["stops"] = criteria.Stops ?? "direct,1stop";
         query["adults"] = criteria.Adults.ToString();
-        query["infants"] = criteria.Infants?.ToString() ?? "0";
+        query["infants"] = criteria.Infants.ToString();
         query["cabinClass"] = criteria.CabinClass ?? "economy";
         builder.Query = query.ToString() ?? string.Empty;
         return builder.Uri;

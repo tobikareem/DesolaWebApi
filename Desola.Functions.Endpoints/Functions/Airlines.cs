@@ -30,7 +30,7 @@ public class Airlines
     }
 
     [Function("AirlineRoutes")]
-    public async Task<IActionResult> GetRoutes([HttpTrigger(AuthorizationLevel.Function, "get", "post", Route = "airline/route")] HttpRequest req)
+    public async Task<IActionResult> GetRoutes([HttpTrigger(AuthorizationLevel.Function, "get", "post", Route = "airline/route")] HttpRequest req, CancellationToken cancellationToken)
     {
         _logger.LogInformation("C# HTTP trigger function processed a request.");
 
@@ -45,7 +45,7 @@ public class Airlines
             max = 60;
         }
 
-        var routes = await _airlineRouteService.GetAirportRoutesAsync(airlineCode, max);
+        var routes = await _airlineRouteService.GetAirportRoutesAsync(airlineCode, max, cancellationToken);
 
 
         if (routes != null)

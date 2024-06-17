@@ -50,7 +50,7 @@ public class AirlineRepository : IAirlineRepository
 
         var airlineList = JsonSerializer.Deserialize<List<Airline>>(airlineFile);
 
-        _cacheService.Add(CacheEntry.AllAirlines, airlineList, 600);
+        _cacheService.Add(CacheEntry.AllAirlines, airlineList, TimeSpan.FromDays(30));
 
         return airlineList ?? throw new ArgumentNullException(nameof(Airline), "Airline list is null");
 

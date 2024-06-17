@@ -50,16 +50,16 @@ public class ApiService : IApiService
             throw new InvalidOperationException("Failed to get access token");
         }
 
-        _cacheService.Add(CacheEntry.AccessToken, tokenData, tokenData.ExpiresIn - 300); // 300 seconds buffer
+        _cacheService.Add(CacheEntry.AccessToken, tokenData, TimeSpan.FromMilliseconds(tokenData.ExpiresIn - 300)); // 300 seconds buffer
 
         tokenData.RefreshToken(tokenData.AccessToken, tokenData.ExpiresIn);
         return tokenData.BearerToken;
 
     }
 
-    public async Task<T> SendAsync<T>(HttpRequestMessage request)
+    public async Task<T> SendAsync<T>(HttpRequestMessage request, CancellationToken cancellationToken)
     {
-        var response = await _httpService.SendAsync(request);
+        var response = await _httpService.SendAsync(request, cancellationToken);
         return JsonConvert.DeserializeObject<T>(response) ?? throw new InvalidOperationException("Failed to deserialize response");
     }
 }

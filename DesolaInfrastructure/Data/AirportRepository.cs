@@ -37,7 +37,7 @@ public class AirportRepository : IAirportRepository
         var stream = await _blobStorageRepository.DownloadBlobAsStreamAsync();
 
         var airports = GetAirportsAsync(stream);
-        _cacheService.Add(CacheEntry.AllAirports, airports, 600);
+        _cacheService.Add(CacheEntry.AllAirports, airports, TimeSpan.FromDays(30));
 
         return airports;
     }

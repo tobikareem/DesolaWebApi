@@ -5,5 +5,5 @@ namespace DesolaDomain.Interfaces;
 public interface IApiService
 {
     Task<string> FetchAccessTokenAsync();
-    Task<T> SendAsync<T>(HttpRequestMessage request);
+    Task<T> SendAsync<T>(HttpRequestMessage request, CancellationToken cancellationToken);
 }

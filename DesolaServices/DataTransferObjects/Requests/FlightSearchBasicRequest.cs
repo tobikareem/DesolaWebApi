@@ -1,9 +1,12 @@
-﻿namespace DesolaServices.DataTransferObjects.Requests;
+﻿using DesolaServices.DataTransferObjects.Responses;
+using MediatR;
 
-public class FlightSearchBasicRequest
+namespace DesolaServices.DataTransferObjects.Requests;
+
+public class FlightSearchBasicRequest : IRequest<Dictionary<string, FlightItineraryGroupResponse>>
 {
     public required string Origin { get; set; }
-    public required string Destination { get; set; }
+    public  string Destination { get; set; }
     public required DateTime DepartureDate { get; set; }
     public DateTime? ReturnDate { get; set; }
     public int Adults { get; set; } = 1;

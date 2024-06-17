@@ -1,5 +1,4 @@
-﻿using DesolaDomain.Aggregates;
-using DesolaServices.DataTransferObjects.Requests;
+﻿using DesolaServices.DataTransferObjects.Requests;
 using DesolaServices.DataTransferObjects.Responses;
 using MediatR;
 

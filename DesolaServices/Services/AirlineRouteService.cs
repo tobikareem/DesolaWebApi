@@ -1,6 +1,4 @@
-﻿
-using amadeus.resources;
-using DesolaServices.Interfaces;
+﻿using DesolaServices.Interfaces;
 using System.Web;
 using AutoMapper;
 using DesolaDomain.Interfaces;
@@ -25,7 +23,7 @@ public class AirlineRouteService : IAirlineRouteService
         _mapper = mapper;
     }
 
-    public async Task<List<FlightRouteResponse>> GetAirportRoutesAsync(string airlineCode, int max)
+    public async Task<List<FlightRouteResponse>> GetAirportRoutesAsync(string airlineCode, int max, CancellationToken cancellationToken)
     {
 
         await ValidateAirlineCodeAsync(airlineCode);
@@ -39,7 +37,7 @@ public class AirlineRouteService : IAirlineRouteService
             Headers = { { "Authorization", $"{accessToken}" } }
         };
 
-        var airportRoute = await _apiService.SendAsync<AirportRoute>(request);
+        var airportRoute = await _apiService.SendAsync<AirportRoute>(request, cancellationToken);
 
         var response = _mapper.Map<List<FlightRouteResponse>>(airportRoute.Data);
 

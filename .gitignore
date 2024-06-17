@@ -365,3 +365,4 @@ FodyWeavers.xsd
 /DesolaDomain/log.txt
 /DesolaInfrastructure/log.txt
 /DesolaServices/log.txt
+/DesolaServices/Mapping/FlightScheduleResponseExample.json
