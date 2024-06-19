@@ -21,7 +21,6 @@ internal class FlightSearchService : IFlightSearchService
     private readonly ILogger<FlightSearchService> _logger;
     private readonly IAirportRepository _airportRepository;
     private readonly IAirlineRepository _airlineRepository;
-
     private List<Airport> _airports;
 
     public FlightSearchService(IApiService apiService, IConfiguration configuration, IMapper mapper, ILogger<FlightSearchService> logger, IAirportRepository airportRepository, IAirlineRepository airlineRepository)
@@ -116,17 +115,20 @@ internal class FlightSearchService : IFlightSearchService
     {
         try
         {
-            _airports = await _airportRepository.GetAirportsAsync();
+            // _airports = await _airportRepository.GetAirportsAsync();
             var uri = BuildSkyScannerFlightSearchUri(criteria);
-            var accessToken = _configuration["RapidApi_Key"];
 
             var request = new HttpRequestMessage(HttpMethod.Get, uri)
             {
-                Headers = { { "x-rapidapi-key", accessToken } }
+                Headers =
+                {
+                    { "x-rapidapi-key", _configuration["RapidApiKey"] },
+                    { "x-rapidapi-host", _configuration["RapidApiHost"] }
+                }
             };
 
             var response = await _apiService.SendAsync<SkyScannerFlightOffer>(request, cancellationToken);
-            var flightSearchResponse = GroupSkyScannerItineraries(response, criteria.SortBy, criteria.SortOrder);
+            var flightSearchResponse = GroupSkyScannerItineraries(response, criteria);
 
             return flightSearchResponse;
         }
@@ -155,27 +157,80 @@ internal class FlightSearchService : IFlightSearchService
         }
     }
 
-    private Dictionary<string, FlightItineraryGroupResponse> GroupSkyScannerItineraries(SkyScannerFlightOffer flightOffer, string sortBy, string sortOrder)
+    private Dictionary<string, FlightItineraryGroupResponse> GroupSkyScannerItineraries(SkyScannerFlightOffer flightOffer, SkyScannerFlightRequest criteria)
     {
         var itineraries = new Dictionary<string, FlightItineraryGroupResponse>();
 
         foreach (var data in flightOffer.Data.Itineraries)
         {
-            var itineraryResponse = _mapper.Map<FlightItineraryResponse>(data);
-            itineraries.Add(Guid.NewGuid().ToString(), new FlightItineraryGroupResponse
+            FlightItineraryResponse departureItinerary = null;
+            FlightItineraryResponse returnItinerary = null;
+
+            var itineraryId = data.Id.Split('|', StringSplitOptions.RemoveEmptyEntries);
+
+            var legCount = 0;
+            foreach (var leg in data.Legs)
             {
-                Departure = itineraryResponse,
-                Return = null
+                var segmentList = new List<FlightSegmentResponse>();
+
+                foreach (var legSegment in leg.Segments)
+                {
+                    var segments = _mapper.Map<FlightSegmentResponse>(legSegment);
+
+                    if (leg.Carriers.Marketing.Any())
+                    {
+                        var carrier = leg.Carriers.Marketing.First();
+                        segments.AircraftPhotoLink = carrier.LogoUrl;
+                        segments.Airline = carrier.Name;
+                    }
+
+                    segmentList.Add(segments);
+                }
+
+                var itineraryResponse = new FlightItineraryResponse
+                {
+                    Segments = segmentList,
+                    TotalDuration = TimeSpan.FromMinutes(leg.DurationInMinutes).ToString(@"hh\:mm"),
+                    NumberOfStopOver = leg.StopCount
+                };
+
+
+                if (legCount < itineraryId.Length && leg.Id == itineraryId[legCount])
+                {
+                    switch (legCount)
+                    {
+                        case 0:
+                            departureItinerary = itineraryResponse;
+                            break;
+                        case 1:
+                            returnItinerary = itineraryResponse;
+                            break;
+                    }
+                }
+
+                legCount++;
+            }
+
+            itineraries.Add(data.Id, new FlightItineraryGroupResponse
+            {
+                TotalPrice = data.Price.Raw,
+                PriceCurrency = "USD",
+                Departure = departureItinerary,
+                Return = returnItinerary
             });
+
+
         }
 
-        return ApplySorting(itineraries, sortBy, sortOrder);
+        return string.IsNullOrWhiteSpace(criteria.SortBy) && string.IsNullOrWhiteSpace(criteria.SortOrder) ? itineraries : ApplySorting(itineraries, criteria.SortBy, criteria.SortOrder);
     }
 
     private async Task<Dictionary<string, FlightItineraryGroupResponse>> GroupItineraries(FlightOffer flightOffer, string sortBy, string sortOrder)
     {
         var itineraries = new Dictionary<string, FlightItineraryGroupResponse>();
         var airlines = await _airlineRepository.GetAllAirlinesAsync();
+
+        var totalPrice = string.Empty;
 
         foreach (var data in flightOffer.Data)
         {
@@ -202,8 +257,7 @@ internal class FlightSearchService : IFlightSearchService
 
 
                 var itineraryResponse = _mapper.Map<FlightItineraryResponse>(itinerary);
-                itineraryResponse.TotalPrice = decimal.Parse(data.Price.GrandTotal);
-                itineraryResponse.PriceCurrency = data.Price.Currency;
+                totalPrice = data.Price.GrandTotal;
 
                 if (departureItinerary == null)
                 {
@@ -217,6 +271,8 @@ internal class FlightSearchService : IFlightSearchService
 
             itineraries.Add(Guid.NewGuid().ToString(), new FlightItineraryGroupResponse
             {
+                TotalPrice = decimal.Parse(totalPrice),
+                PriceCurrency = "USD",
                 Departure = departureItinerary,
                 Return = returnItinerary
             });
@@ -233,8 +289,8 @@ internal class FlightSearchService : IFlightSearchService
         {
             case "price":
                 sortedItineraries = sortOrder?.ToLower() == "desc"
-                    ? sortedItineraries.OrderByDescending(x => x.Value.Departure.TotalPrice)
-                    : sortedItineraries.OrderBy(x => x.Value.Departure.TotalPrice);
+                    ? sortedItineraries.OrderByDescending(x => x.Value.TotalPrice)
+                    : sortedItineraries.OrderBy(x => x.Value.TotalPrice);
 
                 break;
             case "duration":
@@ -244,7 +300,7 @@ internal class FlightSearchService : IFlightSearchService
                 break;
             default:
                 _logger.LogWarning("Invalid sort by criteria. Sorting by price in ascending order");
-                sortedItineraries = sortedItineraries.OrderBy(x => x.Value.Departure.TotalPrice);
+                sortedItineraries = sortedItineraries.OrderBy(x => x.Value.TotalPrice);
                 break;
         }
 
@@ -271,7 +327,10 @@ internal class FlightSearchService : IFlightSearchService
 
     private Uri BuildSkyScannerFlightSearchUri(SkyScannerFlightRequest criteria)
     {
-        var builder = new UriBuilder("https://sky-scanner3.p.rapidapi.com/flights/search-roundtrip");
+
+        var url = $"{_configuration["SkyScannerUri"]}/{(criteria.IsOneWay ? "search-one-way" : "search-roundtrip")}";
+
+        var builder = new UriBuilder(url);
         var query = HttpUtility.ParseQueryString(string.Empty);
         query["fromEntityId"] = criteria.FromEntityId;
         query["toEntityId"] = criteria.ToEntityId;

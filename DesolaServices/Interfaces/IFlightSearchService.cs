@@ -9,4 +9,7 @@ public interface IFlightSearchService
 
     Task<Dictionary<string, FlightItineraryGroupResponse>> SearchAdvancedFlightsAsync(
         FlightSearchAdvancedRequest criteria, CancellationToken cancellationToken);
+
+    Task<Dictionary<string, FlightItineraryGroupResponse>> SearchSkyScannerFlightsAsync(
+        SkyScannerFlightRequest criteria, CancellationToken cancellationToken);
 }

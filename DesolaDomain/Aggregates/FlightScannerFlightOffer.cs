@@ -1,4 +1,5 @@
 ﻿using System.Text.Json.Serialization;
+using DesolaDomain.Entities.Flights;
 
 namespace DesolaDomain.Aggregates;
 
@@ -49,6 +50,8 @@ public class SkyScannerLeg
     [JsonPropertyName("durationInMinutes")]
     public int DurationInMinutes { get; set; }
 
+    public int StopCount { get; set; }
+
     [JsonPropertyName("departure")]
     public DateTime Departure { get; set; }
 
@@ -57,6 +60,9 @@ public class SkyScannerLeg
 
     [JsonPropertyName("carriers")]
     public SkyScannerCarriers Carriers { get; set; }
+
+    [JsonPropertyName("segments")]
+    public List<SkySegment> Segments { get; set; }
 }
 
 public class SkyScannerLocation
@@ -75,6 +81,9 @@ public class SkyScannerLocation
 
     [JsonPropertyName("country")]
     public string Country { get; set; }
+
+    [JsonPropertyName("parent")]
+    public Parent Parent { get; set; }
 }
 
 public class SkyScannerCarriers
@@ -93,4 +102,19 @@ public class SkyScannerCarrier
 
     [JsonPropertyName("logoUrl")]
     public string LogoUrl { get; set; }
+
+    [JsonPropertyName("alternateId")]
+    public string AlternateId { get; set; }
+}
+
+public class Parent
+{
+    [JsonPropertyName("flightPlaceId")]
+    public string FlightPlaceId { get; set; }
+    [JsonPropertyName("displayCode")]
+    public string DisplayCode { get; set; }
+    [JsonPropertyName("name")]
+    public string Name { get; set; }
+    [JsonPropertyName("type")]
+    public string Type { get; set; }
 }

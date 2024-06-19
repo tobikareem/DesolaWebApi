@@ -4,7 +4,7 @@ using MediatR;
 
 namespace DesolaServices.Commands.Queries;
 
-public class SearchAdvancedFlightQuery(FlightSearchAdvancedRequest criteria) : IRequest<Dictionary<string, FlightItineraryGroupResponse>>
+public class SearchAdvancedFlightQuery(FlightSearchAdvancedRequest criteria) : IRequest<Dictionary<string, FlightItineraryGroupResponse>>, IRequest<SkyScannerFlightRequest>
 {
     public FlightSearchAdvancedRequest Criteria { get; } = criteria;
 }

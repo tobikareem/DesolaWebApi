@@ -14,4 +14,5 @@ public class SkyScannerFlightRequest
     public string CabinClass { get; set; }
     public string SortBy { get; set; }
     public string SortOrder { get; set; }
+    public bool IsOneWay { get; set; }
 }

@@ -4,6 +4,7 @@ using DesolaDomain.Enums;
 using DesolaDomain.Interfaces;
 using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json;
+using JsonSerializer = System.Text.Json.JsonSerializer;
 
 namespace DesolaInfrastructure.External;
 
@@ -60,6 +61,8 @@ public class ApiService : IApiService
     public async Task<T> SendAsync<T>(HttpRequestMessage request, CancellationToken cancellationToken)
     {
         var response = await _httpService.SendAsync(request, cancellationToken);
-        return JsonConvert.DeserializeObject<T>(response) ?? throw new InvalidOperationException("Failed to deserialize response");
+        var responseJson = JsonConvert.DeserializeObject<T>(response) ?? throw new InvalidOperationException("Failed to deserialize response");
+
+        return responseJson;
     }
 }

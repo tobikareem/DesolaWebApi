@@ -366,3 +366,8 @@ FodyWeavers.xsd
 /DesolaInfrastructure/log.txt
 /DesolaServices/log.txt
 /DesolaServices/Mapping/FlightScheduleResponseExample.json
+/DesolaDomain/articles
+/DesolaDomain/docfx.json
+/DesolaDomain/index.md
+/DesolaDomain/toc.yml
+/DesolaDomain/api/index.md

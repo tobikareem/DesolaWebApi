@@ -61,4 +61,21 @@ public class FlightSearch
         return new OkObjectResult(response);
     }
 
+    [Function("SkyScannerFlightSearch")]
+    public async Task<IActionResult> SkyScannerFlightSearch([HttpTrigger("post", Route = "flight/search/skyscanner")] HttpRequest req)
+    {
+        _logger.LogInformation("C# HTTP trigger function processed a request.");
+        var requestBody = await new StreamReader(req.Body).ReadToEndAsync();
+
+        var data = JsonConvert.DeserializeObject<SkyScannerFlightRequest>(requestBody);
+
+        if (data == null)
+        {
+            throw new ArgumentNullException(nameof(data));
+        }
+
+        var response = await _mediator.Send(new SearchSkyScannerFlightQuery(data));
+        return new OkObjectResult(response);
+    }
+
 }
