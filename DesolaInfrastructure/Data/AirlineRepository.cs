@@ -29,7 +29,7 @@ public class AirlineRepository : IAirlineRepository
         _americanAirlines = configuration["AmericanAirlines"] ?? throw new ArgumentNullException(nameof(configuration), "Unable to find american airlines");
     }
 
-    public async Task<List<Airline>> GetAllAirlinesAsync()
+    public async Task<List<Airline>>  GetAllAirlinesAsync()
     {
         _logger.LogInformation("Getting all airlines");
 

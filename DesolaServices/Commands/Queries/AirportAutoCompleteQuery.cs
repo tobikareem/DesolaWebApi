@@ -3,7 +3,11 @@ using MediatR;
 
 namespace DesolaServices.Commands.Queries;
 
-public class AirportAutoCompleteQuery (string airportQuery) : IRequest<List<AirportAutoCompleteResponse>>
+public class AirportAutoCompleteQuery : IRequest<List<AirportAutoCompleteResponse>>
 {
-    public string AirportSearchQuery { get; } = airportQuery;
+    public AirportAutoCompleteQuery(string airportQuery)
+    {
+        AirportSearchQuery = airportQuery;
+    }
+    public string AirportSearchQuery { get; }
 }

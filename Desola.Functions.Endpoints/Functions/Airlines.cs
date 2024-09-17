@@ -20,8 +20,13 @@ public class Airlines
         _airlineRouteService = airlineRouteService;
     }
 
+    /// <summary>
+    /// Get a list of all airlines
+    /// </summary>
+    /// <param name="req"></param>
+    /// <returns></returns>
     [Function("Airlines")]
-    public async Task<IActionResult> Run([Microsoft.Azure.Functions.Worker.HttpTrigger(AuthorizationLevel.Function, "get", "post", Route = "airline/all")] HttpRequest req)
+    public async Task<IActionResult> Run([HttpTrigger(AuthorizationLevel.Function, "get", "post", Route = "airline/all")] HttpRequest req)
     {
         _logger.LogInformation("C# HTTP trigger function processed a request.");
 
@@ -29,6 +34,13 @@ public class Airlines
         return new OkObjectResult(airlines.Take(40));
     }
 
+
+    /// <summary>
+    /// Get airline route by passing query parameters
+    /// </summary>
+    /// <param name="req"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
     [Function("AirlineRoutes")]
     public async Task<IActionResult> GetRoutes([HttpTrigger(AuthorizationLevel.Function, "get", "post", Route = "airline/route")] HttpRequest req, CancellationToken cancellationToken)
     {
