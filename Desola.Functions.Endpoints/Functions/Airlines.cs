@@ -36,7 +36,8 @@ public class Airlines
 
 
     /// <summary>
-    /// Get airline route by passing query parameters
+    /// Get airline route by passing query parameters.
+    /// Check what destinations are served by the airline passed
     /// </summary>
     /// <param name="req"></param>
     /// <param name="cancellationToken"></param>
@@ -57,7 +58,10 @@ public class Airlines
             max = 60;
         }
 
-        var routes = await _airlineRouteService.GetAirportRoutesAsync(airlineCode, max, cancellationToken);
+        var code = req.Query["countryCode"].ToString();
+      //  var countryCode = string.IsNullOrWhiteSpace(code) ? "all" : code;
+
+        var routes = await _airlineRouteService.GetAirportRoutesAsync(airlineCode, max, code, cancellationToken);
 
 
         if (routes != null)

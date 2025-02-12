@@ -23,12 +23,12 @@ public class AirlineRouteService : IAirlineRouteService
         _mapper = mapper;
     }
 
-    public async Task<List<FlightRouteResponse>> GetAirportRoutesAsync(string airlineCode, int max, CancellationToken cancellationToken)
+    public async Task<List<FlightRouteResponse>> GetAirportRoutesAsync(string airlineCode, int max, string countyCode, CancellationToken cancellationToken)
     {
 
         await ValidateAirlineCodeAsync(airlineCode);
 
-        var uri = BuildSearchUri(airlineCode, max);
+        var uri = BuildSearchUri(airlineCode, countyCode, max);
 
         var accessToken = await _apiService.FetchAccessTokenAsync();
 
@@ -38,8 +38,14 @@ public class AirlineRouteService : IAirlineRouteService
         };
 
         var airportRoute = await _apiService.SendAsync<AirportRoute>(request, cancellationToken);
+        var result = airportRoute.Data;
 
-        var response = _mapper.Map<List<FlightRouteResponse>>(airportRoute.Data);
+        //if (countyCode != "all")
+        //{
+        //    result = result.Where(x => x.Address.CountryCode.ToLowerInvariant() == countyCode.ToLowerInvariant()).ToList();
+        //}
+
+        var response = _mapper.Map<List<FlightRouteResponse>>(result);
 
         return response;
     }
@@ -54,12 +60,19 @@ public class AirlineRouteService : IAirlineRouteService
         }
     }
 
-    private Uri BuildSearchUri(string airlineCode, int max = 20)
+    private Uri BuildSearchUri(string airlineCode, string arrivalCountryCode, int max = 100)
     {
         var builder = new UriBuilder(_configuration["AmadeusApi_BaseUrl"] + "/v1/airline/destinations");
         var query = HttpUtility.ParseQueryString(string.Empty);
-        query["airlineCode"] = airlineCode;
-        query["max"] = max.ToString();
+
+        query[nameof(airlineCode)] = airlineCode;
+        query[nameof(max)] = max.ToString();
+
+        if (!string.IsNullOrWhiteSpace(arrivalCountryCode))
+        {
+            query[nameof(arrivalCountryCode)] = arrivalCountryCode;
+        }
+
         builder.Query = query.ToString() ?? string.Empty;
         return builder.Uri;
     }

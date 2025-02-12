@@ -33,8 +33,7 @@ internal class FlightSearchService : IFlightSearchService
         _airlineRepository = airlineRepository;
     }
 
-    public async Task<Dictionary<string, FlightItineraryGroupResponse>> SearchFlightsAsync(
-        FlightSearchBasicRequest criteria, CancellationToken cancellationToken)
+    public async Task<Dictionary<string, FlightItineraryGroupResponse>> SearchFlightsAsync(FlightSearchBasicRequest criteria, CancellationToken cancellationToken)
     {
         try
         {
