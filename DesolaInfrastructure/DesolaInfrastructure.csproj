@@ -7,15 +7,21 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="CaptainOath.DataStore" Version="2.0.1" />
+    <PackageReference Include="amadeus-dotnet" Version="2.0.0" />
+    <PackageReference Include="CaptainOath.DataStore" Version="2.0.5" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="8.0.0" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.1" />
     <PackageReference Include="Microsoft.Extensions.Caching.Abstractions" Version="8.0.0" />
+    <PackageReference Include="CsvHelper" Version="32.0.3" />
+    <PackageReference Include="Microsoft.Extensions.Http" Version="8.0.0" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\DesolaDataSource\DesolaDataSource.csproj" />
     <ProjectReference Include="..\DesolaDomain\DesolaDomain.csproj" />
-    <ProjectReference Include="..\DesolaMemoryCache\DesolaMemoryCache.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Services\Identity\Authentication\" />
   </ItemGroup>
 
 </Project>

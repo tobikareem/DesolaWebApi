@@ -361,3 +361,13 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+/DesolaServices/Mapping/airline_codes.json
+/DesolaDomain/log.txt
+/DesolaInfrastructure/log.txt
+/DesolaServices/log.txt
+/DesolaServices/Mapping/FlightScheduleResponseExample.json
+/DesolaDomain/articles
+/DesolaDomain/docfx.json
+/DesolaDomain/index.md
+/DesolaDomain/toc.yml
+/DesolaDomain/api/index.md
