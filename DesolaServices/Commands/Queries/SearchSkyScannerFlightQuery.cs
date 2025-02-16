@@ -4,7 +4,12 @@ using MediatR;
 
 namespace DesolaServices.Commands.Queries;
 
-public class SearchSkyScannerFlightQuery(SkyScannerFlightRequest flightRequest) : IRequest<Dictionary<string, FlightItineraryGroupResponse>>
+public class SearchSkyScannerFlightQuery : IRequest<Dictionary<string, FlightItineraryGroupResponse>>
 {
-    public SkyScannerFlightRequest FlightRequest { get; } = flightRequest;
+
+    public SearchSkyScannerFlightQuery(SkyScannerFlightRequest flightRequest)
+    {
+        FlightRequest = flightRequest;
+    }
+    public SkyScannerFlightRequest FlightRequest { get; }
 }

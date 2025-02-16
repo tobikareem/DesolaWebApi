@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
+using DesolaDomain.Entities.PageEntity;
 using DesolaServices.Interfaces;
 using DesolaServices.Services;
 
@@ -15,6 +16,7 @@ public static class ServiceCollection
         services.AddScoped<IFlightSearchService, FlightSearchService>();
         services.AddScoped<IAirlineRouteService, AirlineRouteService>();
         services.AddScoped<IAirportScannerService, AirportScannerService>();
+        services.AddScoped<ITableBase<WebSection>, WebPageContentService>();
 
         services.AddMediatR(config => config.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly()));
 
