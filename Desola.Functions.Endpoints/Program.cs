@@ -1,11 +1,8 @@
-using Azure.Identity;
-using DesolaDomain.Model;
 using DesolaInfrastructure;
 using DesolaServices;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 
 var host = new HostBuilder()
     .ConfigureFunctionsWebApplication()
@@ -19,6 +16,16 @@ var host = new HostBuilder()
 
         services.AddDesolaInfrastructure(configuration);
         services.AddDesolaApplications(configuration);
+        services.AddCors(options =>
+        {
+            options.AddDefaultPolicy(builder =>
+            {
+                builder.WithOrigins("*")
+                    .AllowAnyMethod()
+                    .AllowAnyHeader();
+            });
+        });
+
     })
     .Build();
 
