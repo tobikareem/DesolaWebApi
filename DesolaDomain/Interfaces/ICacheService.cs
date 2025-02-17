@@ -4,10 +4,10 @@ namespace DesolaDomain.Interfaces;
 
 public interface ICacheService
 {
-    void Add<T>(CacheEntry key, T item, TimeSpan duration);
-    T GetItem<T>(CacheEntry key);
+    void Add<T>(string key, T item, TimeSpan duration);
+    T GetItem<T>(string key);
 
-    bool Contains(CacheEntry key);
-    void Remove(CacheEntry key);
-    T GetOrCreate<T>(CacheEntry key, Func<T> createItem, TimeSpan duration);
+    bool Contains(string key);
+    void Remove(string key);
+    T GetOrCreate<T>(string key, Func<T> createItem, TimeSpan duration);
 }

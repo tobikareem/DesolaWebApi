@@ -1,9 +1,9 @@
 ﻿namespace DesolaDomain.Enums;
 
-public enum CacheEntry
+public class CacheEntry
 {
-    AllAirports,
-    AccessToken,
-    AllAirlines,
-    GetAirportsFromSkyScanner
+    public const string AllAirports = "AllAirports";
+    public const string AccessToken = "AccessToken";
+    public const string AllAirlines = "AllAirlines";
+    public const string GetAirportsFromSkyScanner = "GetAirportsFromSkyScanner";
 }

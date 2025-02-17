@@ -1,5 +1,4 @@
-﻿using DesolaDomain.Enums;
-using DesolaDomain.Interfaces;
+﻿using DesolaDomain.Interfaces;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 
@@ -14,7 +13,7 @@ public class CacheService : ICacheService
         _memoryCache = cache;
         _logger = logger;
     }
-    public void Add<T>(CacheEntry key, T item, TimeSpan duration)
+    public void Add<T>(string key, T item, TimeSpan duration)
     {
         _memoryCache.Set(key, item, new MemoryCacheEntryOptions
         {
@@ -22,22 +21,22 @@ public class CacheService : ICacheService
         });
     }
 
-    public T? GetItem<T>(CacheEntry key)
+    public T? GetItem<T>(string key)
     {
         return _memoryCache.Get<T>(key);
     }
 
-    public bool Contains(CacheEntry key)
+    public bool Contains(string key)
     {
         return _memoryCache.TryGetValue(key, out _);
     }
 
-    public void Remove(CacheEntry key)
+    public void Remove(string key)
     {
         _memoryCache.Remove(key);
     }
 
-    public T GetOrCreate<T>(CacheEntry key, Func<T> createItem, TimeSpan duration)
+    public T GetOrCreate<T>(string key, Func<T> createItem, TimeSpan duration)
     {
         if (_memoryCache.TryGetValue(key, out T item))
         {
