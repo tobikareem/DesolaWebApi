@@ -1,4 +1,5 @@
-﻿using CaptainOath.DataStore.Interface;
+﻿using Azure;
+using CaptainOath.DataStore.Interface;
 using DesolaDomain.Entities.PageEntity;
 using DesolaServices.Interfaces;
 using Microsoft.Extensions.Configuration;
@@ -34,6 +35,14 @@ namespace DesolaServices.Services
 
         public async Task UpdateTableEntityAsync(WebSection entity)
         {
+            var existing = await GetTableEntityAsync(entity.PartitionKey, entity.RowKey);
+
+            if (existing == null)
+            {
+                throw new Exception($"Entity with PartitionKey '{entity.PartitionKey}' and RowKey '{entity.RowKey}' not found.");
+
+            }
+            entity.ETag = existing.ETag;
             await _storageRepository.UpdateTableEntityAsync(_tableName, entity);
 
         }
