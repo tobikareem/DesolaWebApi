@@ -1,8 +1,9 @@
-﻿using Azure;
-using CaptainOath.DataStore.Interface;
+﻿using CaptainOath.DataStore.Interface;
 using DesolaDomain.Entities.PageEntity;
+using DesolaDomain.Interfaces;
 using DesolaServices.Interfaces;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 
 namespace DesolaServices.Services
 {
@@ -10,41 +11,82 @@ namespace DesolaServices.Services
     {
         private readonly ITableStorageRepository<WebSection> _storageRepository;
         private readonly string _tableName;
-        public WebPageContentService(ITableStorageRepository<WebSection> storageRepository, IConfiguration configuration)
+        private readonly ICacheService _cacheService;
+        private readonly ILogger<WebPageContentService> _logger;
+        private bool _tableInitialized;
+
+        public WebPageContentService(
+            ITableStorageRepository<WebSection> storageRepository,
+            IConfiguration configuration,
+            ICacheService cacheService,
+            ILogger<WebPageContentService> logger)
         {
             _storageRepository = storageRepository;
+            _cacheService = cacheService;
+            _logger = logger;
             _tableName = configuration["WebPageContentTableName"];
         }
-        private async Task CreateAsync()
+
+        private async Task EnsureTableExistsAsync()
         {
-            await _storageRepository.CreateTableAsync(_tableName);
+            if (!_tableInitialized)
+            {
+                await _storageRepository.CreateTableAsync(_tableName);
+                _tableInitialized = true;
+            }
         }
 
         public async Task InsertTableEntityAsync(WebSection entity)
         {
-            await CreateAsync();
+            await EnsureTableExistsAsync();
+
             await _storageRepository.InsertTableEntityAsync(_tableName, entity);
+
+            // Add to cache
+            var cacheKey = GetCacheKey(entity.PartitionKey, entity.RowKey);
+            _cacheService.Add(cacheKey, entity, TimeSpan.FromMinutes(30));
         }
 
         public async Task<WebSection> GetTableEntityAsync(string partitionKey, string rowKey)
         {
+            var cacheKey = GetCacheKey(partitionKey, rowKey);
+
+            // Try retrieving from cache
+            var cachedEntity = _cacheService.GetItem<WebSection>(cacheKey);
+            if (cachedEntity != null)
+            {
+                _logger.LogInformation($"Cache hit for PartitionKey: {partitionKey}, RowKey: {rowKey}");
+                return cachedEntity;
+            }
+
+            // Fetch from table storage
             var entity = await _storageRepository.GetTableEntityAsync(_tableName, partitionKey, rowKey);
+            if (entity != null)
+            {
+                _cacheService.Add(cacheKey, entity, TimeSpan.FromMinutes(30));
+            }
 
             return entity;
         }
 
         public async Task UpdateTableEntityAsync(WebSection entity)
         {
-            var existing = await GetTableEntityAsync(entity.PartitionKey, entity.RowKey);
+            await EnsureTableExistsAsync();
 
+            var existing = await GetTableEntityAsync(entity.PartitionKey, entity.RowKey);
             if (existing == null)
             {
                 throw new Exception($"Entity with PartitionKey '{entity.PartitionKey}' and RowKey '{entity.RowKey}' not found.");
-
             }
-            entity.ETag = existing.ETag;
+
+            entity.ETag = existing.ETag; // Ensure ETag is set correctly
             await _storageRepository.UpdateTableEntityAsync(_tableName, entity);
 
+            // Update cache
+            var cacheKey = GetCacheKey(entity.PartitionKey, entity.RowKey);
+            _cacheService.Add(cacheKey, entity, TimeSpan.FromMinutes(30));
         }
+
+        private string GetCacheKey(string partitionKey, string rowKey) => $"{partitionKey}:{rowKey}";
     }
 }
