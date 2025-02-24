@@ -6,7 +6,7 @@
           "files": [
             "**.csproj"
           ],
-          "src": "C:\\Projects\\Desola.Functions.Endpoints\\DesolaServices"
+          "src": "C:\\Projects\\DesolaApi\\DesolaServices"
         }
       ],
       "dest": "api",

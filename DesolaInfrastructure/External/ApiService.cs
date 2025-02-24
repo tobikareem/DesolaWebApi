@@ -44,7 +44,7 @@ public class ApiService : IApiService
 
 
         var jsonContent = await _httpService.PostAsync(url, headers, content);
-        tokenData = System.Text.Json.JsonSerializer.Deserialize<TokenAccess>(jsonContent) ?? throw new InvalidOperationException("Failed to deserialize token data");
+        tokenData = JsonSerializer.Deserialize<TokenAccess>(jsonContent) ?? throw new InvalidOperationException("Failed to deserialize token data");
 
         if (string.IsNullOrWhiteSpace(tokenData.AccessToken))
         {
@@ -57,6 +57,37 @@ public class ApiService : IApiService
         return tokenData.BearerToken;
 
     }
+
+    public async Task<T> GetAccessTokenAsync<T>(string cacheKey, string tokenUrl, Dictionary<string, string> parameters, int bufferSeconds = 300)
+    {
+        var cachedToken = _cacheService.GetItem<T>(cacheKey);
+        if (cachedToken != null)
+        {
+            return cachedToken;
+        }
+        
+        var content = new FormUrlEncodedContent(parameters);
+        var response = await _httpService.PostAsync(tokenUrl, new Dictionary<string, string>(), content, true);
+        
+        var tokenData = JsonSerializer.Deserialize<T>(response) ?? throw new Exception("Invalid token response");
+        
+        var tokenExpiration = GetTokenExpirationTime(tokenData);
+        var cacheDuration = tokenExpiration > 0 ? TimeSpan.FromSeconds(tokenExpiration - bufferSeconds) : TimeSpan.FromMinutes(30);
+        
+        _cacheService.Add(cacheKey, tokenData, cacheDuration);
+
+        return tokenData;
+    }
+
+
+    private int GetTokenExpirationTime<T>(T tokenData)
+    {
+        var tokenType = tokenData?.GetType();
+        var expiresInProperty = tokenType?.GetProperty("ExpiresIn");
+
+        return expiresInProperty != null ? (int)(expiresInProperty.GetValue(tokenData) ?? 0) : 0;
+    }
+
 
     public async Task<T> SendAsync<T>(HttpRequestMessage request, CancellationToken cancellationToken)
     {

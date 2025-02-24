@@ -35,7 +35,6 @@ public class TokenAccess
     [JsonPropertyName("scope")]
     public string Scope { get; set; }
 
-
     public virtual string BearerToken => $"Bearer {AccessToken}";
 
     // Checks if this access token needs a refresh.
