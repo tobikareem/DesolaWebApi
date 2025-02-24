@@ -17,6 +17,7 @@ public static class ServiceCollection
         services.AddScoped<IAirlineRouteService, AirlineRouteService>();
         services.AddScoped<IAirportScannerService, AirportScannerService>();
         services.AddScoped<ITableBase<WebSection>, WebPageContentService>();
+        services.AddScoped<IAuthService, AuthService>();
 
         services.AddMediatR(config => config.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly()));
 

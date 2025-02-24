@@ -12,7 +12,6 @@ namespace DesolaInfrastructure.Services.Implementations
             _httpClientFactory = httpClientFactory;
         }
 
-
         public async Task<string> PostAsync(string url, IDictionary<string, string> headers, HttpContent content, bool isToken = false)
         {
             var client = _httpClientFactory.CreateClient();
@@ -20,6 +19,7 @@ namespace DesolaInfrastructure.Services.Implementations
             {
                 client.DefaultRequestHeaders.Add(header.Key, header.Value);
             }
+            
 
             var response = await client.PostAsync(url, content);
             response.EnsureSuccessStatusCode();
