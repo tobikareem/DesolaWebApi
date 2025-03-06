@@ -2,22 +2,23 @@
 using System.Web;
 using AutoMapper;
 using DesolaDomain.Interfaces;
-using Microsoft.Extensions.Configuration;
 using DesolaDomain.Aggregates;
+using DesolaDomain.Settings;
 using DesolaServices.DataTransferObjects.Responses;
+using Microsoft.Extensions.Options;
 
 namespace DesolaServices.Services;
 
 public class AirlineRouteService : IAirlineRouteService
 {
-    private readonly IConfiguration _configuration;
+    private readonly AppSettings _configuration;
     private readonly IApiService _apiService;
     private readonly IAirlineRepository _airlineRepository;
     private readonly IMapper _mapper;
 
-    public AirlineRouteService(IConfiguration configuration, IApiService apiService, IAirlineRepository airlineRepository, IMapper mapper)
+    public AirlineRouteService(IOptions<AppSettings> configuration, IApiService apiService, IAirlineRepository airlineRepository, IMapper mapper)
     {
-        _configuration = configuration;
+        _configuration = configuration.Value;
         _apiService = apiService;
         _airlineRepository = airlineRepository;
         _mapper = mapper;
@@ -62,7 +63,7 @@ public class AirlineRouteService : IAirlineRouteService
 
     private Uri BuildSearchUri(string airlineCode, string arrivalCountryCode, int max = 100)
     {
-        var builder = new UriBuilder(_configuration["AmadeusApi_BaseUrl"] + "/v1/airline/destinations");
+        var builder = new UriBuilder(_configuration.ExternalApi.Amadeus.BaseUrl + "/v1/airline/destinations");
         var query = HttpUtility.ParseQueryString(string.Empty);
 
         query[nameof(airlineCode)] = airlineCode;

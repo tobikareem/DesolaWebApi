@@ -1,7 +1,7 @@
-﻿using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
 using DesolaDomain.Entities.PageEntity;
+using DesolaDomain.Settings;
 using DesolaServices.Interfaces;
 using DesolaServices.Services;
 
@@ -9,8 +9,7 @@ namespace DesolaServices;
 
 public static class ServiceCollection
 {
-    public static IServiceCollection AddDesolaApplications(this IServiceCollection services,
-        IConfiguration configuration)
+    public static IServiceCollection AddDesolaApplications(this IServiceCollection services, AppSettings appSettings)
     {
 
         services.AddScoped<IFlightSearchService, FlightSearchService>();

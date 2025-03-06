@@ -5,10 +5,11 @@ using DesolaDomain.Interfaces;
 using DesolaDomain.Model;
 using DesolaServices.DataTransferObjects.Responses;
 using DesolaServices.Interfaces;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using System.Web;
+using DesolaDomain.Settings;
+using Microsoft.Extensions.Options;
 
 namespace DesolaServices.Services;
 
@@ -16,17 +17,23 @@ public class AirportScannerService : IAirportScannerService
 {
     private readonly ICacheService _cacheService;
     private readonly IBlobStorageRepository _blobStorageRepository;
-    private readonly IConfiguration _configuration;
+    private readonly AppSettings _appSettings;
     private readonly ILogger<AirportScannerService> _logger;
     private readonly IApiService _apiService;
     private readonly IMapper _mapper;
 
-    public AirportScannerService(ICacheService cacheService, ILogger<AirportScannerService> logger, IBlobStorageRepository blobClientRepository, IConfiguration configuration, IApiService apiService, IMapper mapper)
+    public AirportScannerService(
+        ICacheService cacheService,
+        IBlobStorageRepository blobClientRepository,
+        IOptions<AppSettings> configuration,
+        ILogger<AirportScannerService> logger,
+        IApiService apiService,
+        IMapper mapper)
     {
         _cacheService = cacheService;
         _logger = logger;
         _blobStorageRepository = blobClientRepository;
-        _configuration = configuration;
+        _appSettings = configuration.Value ?? throw new ArgumentNullException(nameof(configuration), "AppSettings is null");
         _apiService = apiService;
         _mapper = mapper;
     }
@@ -71,8 +78,8 @@ public class AirportScannerService : IAirportScannerService
 
     private async Task UpsertAirportScannerToBlob(IEnumerable<AirportAutoCompleteResponse> airportScanners)
     {
-        var fileName = _configuration["SkyScanner_Airport_File"];
-        var containerName = _configuration["ContainerName"];
+        var fileName = _appSettings.BlobFiles.SkyScannerAirportFile;
+        var containerName = _appSettings.StorageAccount.ContainerName;
 
         var existingAirports = await GetAirportScannerFromBlob();
         existingAirports.AddRange(airportScanners);
@@ -90,8 +97,8 @@ public class AirportScannerService : IAirportScannerService
 
     private async Task<List<AirportAutoCompleteResponse>> GetAirportScannerFromBlob()
     {
-        var fileName = _configuration["SkyScanner_Airport_File"];
-        var containerName = _configuration["ContainerName"];
+        var fileName = _appSettings.BlobFiles.SkyScannerAirportFile;
+        var containerName = _appSettings.StorageAccount.ContainerName;
 
         var hasAirportData = await _blobStorageRepository.DoesBlobExistAsync(fileName, containerName);
 
@@ -115,8 +122,8 @@ public class AirportScannerService : IAirportScannerService
         {
             Headers =
             {
-                { "x-rapidapi-key", _configuration["RapidApiKey"] },
-                { "x-rapidapi-host", _configuration["RapidApiHost"] }
+                { "x-rapidapi-key", _appSettings.ExternalApi.RapidApi.SkyScannerKey },
+                { "x-rapidapi-host",_appSettings.ExternalApi.RapidApi.SkyScannerHost  }
             }
         };
 
@@ -136,7 +143,7 @@ public class AirportScannerService : IAirportScannerService
 
     private Uri BuildAutocompleteUri(string query)
     {
-        var builder = new UriBuilder($"{_configuration["SkyScannerUri"]}/auto-complete");
+        var builder = new UriBuilder($"{_appSettings.ExternalApi.RapidApi.SkyScannerUri}/auto-complete");
         var queryParameters = HttpUtility.ParseQueryString(string.Empty);
         queryParameters["query"] = query;
         builder.Query = queryParameters.ToString() ?? string.Empty;
