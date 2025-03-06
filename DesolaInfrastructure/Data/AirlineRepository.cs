@@ -3,8 +3,9 @@ using CaptainOath.DataStore.Interface;
 using DesolaDomain.Enums;
 using DesolaDomain.Interfaces;
 using DesolaDomain.Model;
-using Microsoft.Extensions.Configuration;
+using DesolaDomain.Settings;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace DesolaInfrastructure.Data;
 
@@ -18,15 +19,16 @@ public class AirlineRepository : IAirlineRepository
     private readonly string _containerName;
     private readonly string _americanAirlines;
 
-    public AirlineRepository(IBlobStorageRepository blobStorageRepository, ICacheService cacheService, ILogger<AirlineRepository> logger, IConfiguration configuration)
+    public AirlineRepository(IBlobStorageRepository blobStorageRepository, ICacheService cacheService, ILogger<AirlineRepository> logger, IOptions<AppSettings> configuration)
     {
         _blobStorageRepository = blobStorageRepository;
         _cacheService = cacheService;
         _logger = logger;
+        var appSettings = configuration.Value;
 
-        _fileName = configuration["Airport_Code_File"] ?? throw new ArgumentNullException(nameof(configuration), "Unable to find airline file name");
-        _containerName = configuration["ContainerName"] ?? throw new ArgumentNullException(nameof(configuration), "Unable to find airline container name");
-        _americanAirlines = configuration["AmericanAirlines"] ?? throw new ArgumentNullException(nameof(configuration), "Unable to find american airlines");
+        _fileName = appSettings.BlobFiles.AirportCodeFile ?? throw new ArgumentNullException(nameof(configuration), "Unable to find airline file name");
+        _containerName = appSettings.StorageAccount.ContainerName ?? throw new ArgumentNullException(nameof(configuration), "Unable to find airline container name");
+        _americanAirlines = appSettings.Airlines.UnitedStatesAirlines?? throw new ArgumentNullException(nameof(configuration), "Unable to find american airlines");
     }
 
     public async Task<List<Airline>>  GetAllAirlinesAsync()
