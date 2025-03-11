@@ -22,6 +22,12 @@ public class AirportRepository : IAirportRepository
         return await Task.Run(GetAllAirports);
     }
 
+    public async Task<bool> IsAirportValidAsync(string airportCode)
+    {
+        var airports = await GetAllAirports();
+        return airports.Any(airport => airport.Code == airportCode);
+    }
+
     private async Task<List<Airport>> GetAllAirports()
     {
         if (_cacheService.Contains(CacheEntry.AllAirports))

@@ -3,7 +3,8 @@ using Azure.Data.Tables;
 using CaptainOath.DataStore.Extension;
 using CaptainOath.DataStore.Interface;
 using CaptainOath.DataStore.Repositories;
-using DesolaDomain.Entities.PageEntity;
+using DesolaDomain.Entities.Pages;
+using DesolaDomain.Entities.User;
 using DesolaDomain.Interfaces;
 using DesolaDomain.Settings;
 using DesolaInfrastructure.Data;
@@ -51,6 +52,7 @@ public static class ServiceCollection
     public static IServiceCollection AddTableStorageClientCheck(this IServiceCollection services, string connectionString)
     {
         services.AddSingleton<ITableStorageRepository<WebSection>, TableStorageRepository<WebSection>>();
+        services.AddSingleton<ITableStorageRepository<UserTravelPreference>, TableStorageRepository<UserTravelPreference>>();
 
         services.AddSingleton(_ =>
         {

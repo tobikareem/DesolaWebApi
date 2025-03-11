@@ -1,4 +1,4 @@
-﻿using DesolaDomain.Entities.PageEntity;
+﻿using DesolaDomain.Entities.Pages;
 using MediatR;
 
 namespace DesolaServices.Commands.Queries;
