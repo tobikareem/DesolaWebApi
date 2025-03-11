@@ -1,5 +1,5 @@
 ﻿using CaptainOath.DataStore.Interface;
-using DesolaDomain.Entities.PageEntity;
+using DesolaDomain.Entities.Pages;
 using DesolaDomain.Interfaces;
 using DesolaDomain.Settings;
 using DesolaServices.Interfaces;
@@ -83,9 +83,7 @@ namespace DesolaServices.Services
             entity.ETag = existing.ETag; // Ensure ETag is set correctly
             await _storageRepository.UpdateTableEntityAsync(_tableName, entity);
 
-            // Update cache
-            var cacheKey = GetCacheKey(entity.PartitionKey, entity.RowKey);
-            _cacheService.Add(cacheKey, entity, TimeSpan.FromMinutes(30));
+            _cacheService.Remove(GetCacheKey(entity.PartitionKey, entity.RowKey));
         }
 
         private string GetCacheKey(string partitionKey, string rowKey) => $"{partitionKey}:{rowKey}";

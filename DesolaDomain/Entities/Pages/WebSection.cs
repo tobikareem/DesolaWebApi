@@ -1,7 +1,7 @@
 ﻿using Azure;
 using Azure.Data.Tables;
 
-namespace DesolaDomain.Entities.PageEntity;
+namespace DesolaDomain.Entities.Pages;
 
 public class WebSection: ITableEntity
 {
