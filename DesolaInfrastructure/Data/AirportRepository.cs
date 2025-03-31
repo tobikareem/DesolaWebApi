@@ -1,10 +1,10 @@
 ﻿using System.Globalization;
-using CaptainOath.DataStore.Interface;
 using CsvHelper;
 using CsvHelper.Configuration;
 using DesolaDomain.Enums;
 using DesolaDomain.Interfaces;
 using DesolaDomain.Model;
+using CaptainOath.DataStore.Interface;
 
 namespace DesolaInfrastructure.Data;
 
@@ -12,57 +12,69 @@ public class AirportRepository : IAirportRepository
 {
     private readonly IBlobClientRepository _blobStorageRepository;
     private readonly ICacheService _cacheService;
+    private static readonly HashSet<string> ExcludedAirportTypes = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "heliport", "closed", "seaplane", "seaplane_base"
+    };
+
     public AirportRepository(IBlobClientRepository blobStorageRepository, ICacheService cacheService)
     {
         _blobStorageRepository = blobStorageRepository;
-        _cacheService=cacheService;
+        _cacheService = cacheService;
     }
+
     public async Task<List<Airport>> GetAirportsAsync()
-    {
-        return await Task.Run(GetAllAirports);
-    }
-
-    public async Task<bool> IsAirportValidAsync(string airportCode)
-    {
-        var airports = await GetAllAirports();
-        return airports.Any(airport => airport.Code == airportCode);
-    }
-
-    private async Task<List<Airport>> GetAllAirports()
     {
         if (_cacheService.Contains(CacheEntry.AllAirports))
         {
             return _cacheService.GetItem<List<Airport>>(CacheEntry.AllAirports) ?? new List<Airport>();
         }
 
-        if (!await _blobStorageRepository.DoesBlobExistAsync())
+        var airports = await ReadUsAirportsAsync().ToListAsync();
+
+        if (airports.Count > 0)
         {
-            return new List<Airport>();
+            _cacheService.Add(CacheEntry.AllAirports, airports, TimeSpan.FromDays(30));
         }
-
-        var stream = await _blobStorageRepository.DownloadBlobAsStreamAsync();
-
-        var airports = GetAirportsAsync(stream);
-        _cacheService.Add(CacheEntry.AllAirports, airports, TimeSpan.FromDays(30));
 
         return airports;
     }
 
-    private static List<Airport> GetAirportsAsync(Stream stream)
+    public async Task<bool> IsAirportValidAsync(string airportCode)
     {
+        if (_cacheService.Contains(CacheEntry.AllAirports))
+        {
+            var airports = _cacheService.GetItem<List<Airport>>(CacheEntry.AllAirports);
+            return airports?.Any(airport => string.Equals(airport.Code, airportCode, StringComparison.OrdinalIgnoreCase)) ?? false;
+        }
+
+        return await ReadUsAirportsAsync()
+            .AnyAsync(airport => string.Equals(airport.Code, airportCode, StringComparison.OrdinalIgnoreCase));
+    }
+    private async IAsyncEnumerable<Airport> ReadUsAirportsAsync()
+    {
+        if (!await _blobStorageRepository.DoesBlobExistAsync())
+            yield break;
+
+        await using var stream = await _blobStorageRepository.DownloadBlobAsStreamAsync();
         var config = new CsvConfiguration(CultureInfo.InvariantCulture)
         {
             HasHeaderRecord = true,
             MissingFieldFound = null,
         };
+
         using var reader = new StreamReader(stream);
         using var csv = new CsvReader(reader, config);
         csv.Context.RegisterClassMap<AirportCsvMap>();
 
-        var records = csv.GetRecords<Airport>()
-            .Where(record => !string.IsNullOrWhiteSpace(record.Code))
-            .ToList();
-        return records;
+        await foreach (var record in csv.GetRecordsAsync<Airport>())
+        {
+            if (!string.IsNullOrWhiteSpace(record.Code) &&
+                string.Equals(record.CountryCode, "US", StringComparison.OrdinalIgnoreCase) &&
+                !ExcludedAirportTypes.Contains(record.AirportType))
+            {
+                yield return record;
+            }
+        }
     }
-    
 }
