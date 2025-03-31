@@ -36,14 +36,8 @@ public class AirportRepository : IAirportRepository
             return airports?.Any(airport => string.Equals(airport.Code, airportCode, StringComparison.OrdinalIgnoreCase)) ?? false;
         }
 
-        await foreach (var airport in ReadUsAirportsAsync())
-        {
-            if (string.Equals(airport.Code, airportCode, StringComparison.OrdinalIgnoreCase))
-            {
-                return true;
-            }
-        }
-        return false;
+        return await ReadUsAirportsAsync()
+            .AnyAsync(airport => string.Equals(airport.Code, airportCode, StringComparison.OrdinalIgnoreCase));
     }
 
     private async Task<List<Airport>> GetAllAirportsAsync()
@@ -53,11 +47,7 @@ public class AirportRepository : IAirportRepository
             return _cacheService.GetItem<List<Airport>>(CacheEntry.AllAirports) ?? new List<Airport>();
         }
 
-        var airports = new List<Airport>();
-        await foreach (var airport in ReadUsAirportsAsync())
-        {
-            airports.Add(airport);
-        }
+        var airports = await ReadUsAirportsAsync().ToListAsync();
 
         if (airports.Count > 0)
         {
@@ -72,7 +62,7 @@ public class AirportRepository : IAirportRepository
         if (!await _blobStorageRepository.DoesBlobExistAsync())
             yield break;
 
-        using var stream = await _blobStorageRepository.DownloadBlobAsStreamAsync();
+        await using var stream = await _blobStorageRepository.DownloadBlobAsStreamAsync();
         var config = new CsvConfiguration(CultureInfo.InvariantCulture)
         {
             HasHeaderRecord = true,

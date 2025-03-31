@@ -4,9 +4,9 @@ namespace DesolaDomain.Interfaces;
 
 public interface IAirlineRepository
 {
-    Task<List<Airline>> GetAllAirlinesAsync();
+    Task<List<Airline>> GetAllAsync();
 
-    Task<List<Airline>> GetAmericanAirlinesAsync();
+    Task<IEnumerable<Airline>> GetByCountryAsync(string countryCode);
 
-    Task<string> GetAllAirlineIataCodesAsync();
+    Task<Airline> GetByCodeAsync(string iataCode);
 }

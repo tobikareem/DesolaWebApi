@@ -30,7 +30,7 @@ public class Airlines
     {
         _logger.LogInformation("C# HTTP trigger function processed a request.");
 
-        var airlines = await _airlineRepository.GetAllAirlinesAsync();
+        var airlines = await _airlineRepository.GetAllAsync();
         return new OkObjectResult(airlines.Take(40));
     }
 

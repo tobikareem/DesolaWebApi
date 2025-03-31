@@ -27,7 +27,12 @@ public class AirlineRouteService : IAirlineRouteService
     public async Task<List<FlightRouteResponse>> GetAirportRoutesAsync(string airlineCode, int max, string countyCode, CancellationToken cancellationToken)
     {
 
-        await ValidateAirlineCodeAsync(airlineCode);
+        var airlineWithCode = await _airlineRepository.GetByCodeAsync(airlineCode);
+
+        if (airlineWithCode == null)
+        {
+            throw new InvalidOperationException("Airline not found");
+        }
 
         var uri = BuildSearchUri(airlineCode, countyCode, max);
 
@@ -49,16 +54,6 @@ public class AirlineRouteService : IAirlineRouteService
         var response = _mapper.Map<List<FlightRouteResponse>>(result);
 
         return response;
-    }
-
-    private async Task ValidateAirlineCodeAsync(string airlineCode)
-    {
-        var airlineCodes = await _airlineRepository.GetAllAirlineIataCodesAsync();
-
-        if (!airlineCodes.Contains(airlineCode))
-        {
-            throw new ArgumentException("Invalid airline code", nameof(airlineCode));
-        }
     }
 
     private Uri BuildSearchUri(string airlineCode, string arrivalCountryCode, int max = 100)
