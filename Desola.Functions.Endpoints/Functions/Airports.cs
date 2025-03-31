@@ -5,10 +5,12 @@ using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Models;
 using System.Net;
 using DesolaDomain.Interfaces;
+using DesolaDomain.Settings;
 using MediatR;
 using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Attributes;
 using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Enums;
 using DesolaServices.Commands.Queries;
+using Microsoft.Extensions.Options;
 
 namespace Desola.Functions.Endpoints.Functions;
 
@@ -17,13 +19,14 @@ public class Airports
     private readonly ILogger<Airports> _logger;
     private readonly IAirportRepository _airportRepository;
     private readonly IMediator _mediator;
+    private readonly AppSettings _appSettings;
 
-
-    public Airports(ILogger<Airports> logger, IAirportRepository airportRepository, IMediator mediator)
+    public Airports(ILogger<Airports> logger, IAirportRepository airportRepository, IMediator mediator, IOptions<AppSettings> settings)
     {
         _logger = logger;
         _airportRepository = airportRepository;
         _mediator = mediator;
+        _appSettings = settings.Value;
     }
 
     [Function("Airports")]

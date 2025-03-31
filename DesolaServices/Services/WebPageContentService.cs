@@ -1,9 +1,10 @@
 ﻿using CaptainOath.DataStore.Interface;
-using DesolaDomain.Entities.PageEntity;
+using DesolaDomain.Entities.Pages;
 using DesolaDomain.Interfaces;
+using DesolaDomain.Settings;
 using DesolaServices.Interfaces;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace DesolaServices.Services
 {
@@ -17,14 +18,14 @@ namespace DesolaServices.Services
 
         public WebPageContentService(
             ITableStorageRepository<WebSection> storageRepository,
-            IConfiguration configuration,
+            IOptions<AppSettings> configuration,
             ICacheService cacheService,
             ILogger<WebPageContentService> logger)
         {
             _storageRepository = storageRepository;
             _cacheService = cacheService;
             _logger = logger;
-            _tableName = configuration["WebPageContentTableName"];
+            _tableName = configuration.Value.Database.WebPageContentTableName;
         }
 
         private async Task EnsureTableExistsAsync()
@@ -82,9 +83,7 @@ namespace DesolaServices.Services
             entity.ETag = existing.ETag; // Ensure ETag is set correctly
             await _storageRepository.UpdateTableEntityAsync(_tableName, entity);
 
-            // Update cache
-            var cacheKey = GetCacheKey(entity.PartitionKey, entity.RowKey);
-            _cacheService.Add(cacheKey, entity, TimeSpan.FromMinutes(30));
+            _cacheService.Remove(GetCacheKey(entity.PartitionKey, entity.RowKey));
         }
 
         private string GetCacheKey(string partitionKey, string rowKey) => $"{partitionKey}:{rowKey}";

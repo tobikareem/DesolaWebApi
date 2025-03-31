@@ -227,7 +227,7 @@ internal class FlightSearchService : IFlightSearchService
     private async Task<Dictionary<string, FlightItineraryGroupResponse>> GroupItineraries(FlightOffer flightOffer, string sortBy, string sortOrder)
     {
         var itineraries = new Dictionary<string, FlightItineraryGroupResponse>();
-        var airlines = await _airlineRepository.GetAllAirlinesAsync();
+        var airlines = await _airlineRepository.GetAllAsync();
 
         var totalPrice = string.Empty;
 

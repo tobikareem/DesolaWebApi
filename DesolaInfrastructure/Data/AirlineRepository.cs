@@ -3,8 +3,9 @@ using CaptainOath.DataStore.Interface;
 using DesolaDomain.Enums;
 using DesolaDomain.Interfaces;
 using DesolaDomain.Model;
-using Microsoft.Extensions.Configuration;
+using DesolaDomain.Settings;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace DesolaInfrastructure.Data;
 
@@ -18,18 +19,19 @@ public class AirlineRepository : IAirlineRepository
     private readonly string _containerName;
     private readonly string _americanAirlines;
 
-    public AirlineRepository(IBlobStorageRepository blobStorageRepository, ICacheService cacheService, ILogger<AirlineRepository> logger, IConfiguration configuration)
+    public AirlineRepository(IBlobStorageRepository blobStorageRepository, ICacheService cacheService, ILogger<AirlineRepository> logger, IOptions<AppSettings> configuration)
     {
         _blobStorageRepository = blobStorageRepository;
         _cacheService = cacheService;
         _logger = logger;
+        var appSettings = configuration.Value;
 
-        _fileName = configuration["Airport_Code_File"] ?? throw new ArgumentNullException(nameof(configuration), "Unable to find airline file name");
-        _containerName = configuration["ContainerName"] ?? throw new ArgumentNullException(nameof(configuration), "Unable to find airline container name");
-        _americanAirlines = configuration["AmericanAirlines"] ?? throw new ArgumentNullException(nameof(configuration), "Unable to find american airlines");
+        _fileName = appSettings.BlobFiles.AirportCodeFile ?? throw new ArgumentNullException(nameof(configuration), "Unable to find airline file name");
+        _containerName = appSettings.StorageAccount.ContainerName ?? throw new ArgumentNullException(nameof(configuration), "Unable to find airline container name");
+        _americanAirlines = appSettings.Airlines.UnitedStatesAirlines?? throw new ArgumentNullException(nameof(configuration), "Unable to find american airlines");
     }
 
-    public async Task<List<Airline>>  GetAllAirlinesAsync()
+    public async Task<List<Airline>> GetAllAsync()
     {
         _logger.LogInformation("Getting all airlines");
 
@@ -56,30 +58,43 @@ public class AirlineRepository : IAirlineRepository
 
     }
 
-    public async Task<List<Airline>> GetAmericanAirlinesAsync()
+    public async Task<IEnumerable<Airline>> GetByCountryAsync(string countryCode)
     {
+        if (!string.Equals(countryCode, "us", StringComparison.OrdinalIgnoreCase))
+        {
+            return Enumerable.Empty<Airline>();
+        }
 
-        var allAirLines = await GetAllAirlinesAsync();
+        var allAirLines = await GetAllAsync();
 
         return allAirLines.Where(x => _americanAirlines.Contains(x.Name, StringComparison.OrdinalIgnoreCase))
             .ToList();
     }
 
-    public async Task<string> GetAllAirlineIataCodesAsync()
+    public async Task<Airline> GetByCodeAsync(string iataCode)
     {
-        var allAirLines = await GetAllAirlinesAsync();
+        if (string.IsNullOrWhiteSpace(iataCode))
+        {
+            throw new ArgumentException("IATA code must be provided", nameof(iataCode));
+        }
 
-        var codes = allAirLines.Select(x => x.IataCode);
-
-        return string.Join(",", codes);
+        return await ReadAirlineAsync()
+            .FirstOrDefaultAsync(airline => string.Equals(airline.IataCode, iataCode, StringComparison.OrdinalIgnoreCase));
     }
 
-    public async Task<string> GetAllAmericanAirlineIataCodesAsync()
+    private async IAsyncEnumerable<Airline> ReadAirlineAsync()
     {
-        var allAirLines = await GetAmericanAirlinesAsync();
+        if (!await _blobStorageRepository.DoesBlobExistAsync(_fileName, _containerName))
+            yield break;
 
-        var codes = allAirLines.Select(x => x.IataCode);
+        var stream = await _blobStorageRepository.DownloadBlobAsStreamAsync(_fileName, _containerName);
 
-        return string.Join(",", codes);
+        await foreach (var airline in JsonSerializer.DeserializeAsyncEnumerable<Airline>(stream))
+        {
+            if (airline != null)
+            {
+                yield return airline;
+            }
+        }
     }
 }

@@ -370,4 +370,6 @@ FodyWeavers.xsd
 /DesolaDomain/docfx.json
 /DesolaDomain/index.md
 /DesolaDomain/toc.yml
-/DesolaDomain/api/index.md
+/DesolaDomain/api
+/DesolaInfrastructure/api
+/DesolaInfrastructure/articles

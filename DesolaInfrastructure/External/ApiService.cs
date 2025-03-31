@@ -2,7 +2,8 @@
 using DesolaDomain.Entities.Authorization;
 using DesolaDomain.Enums;
 using DesolaDomain.Interfaces;
-using Microsoft.Extensions.Configuration;
+using DesolaDomain.Settings;
+using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using JsonSerializer = System.Text.Json.JsonSerializer;
 
@@ -11,14 +12,14 @@ namespace DesolaInfrastructure.External;
 public class ApiService : IApiService
 {
     private readonly IHttpService _httpService;
-    private readonly IConfiguration _configuration;
+    private readonly AppSettings _appSettings;
     private readonly ICacheService _cacheService;
     private readonly Amadeus _amadeus;
 
-    public ApiService(IHttpService httpService, IConfiguration configuration, ICacheService cacheService, Amadeus amadeus)
+    public ApiService(IHttpService httpService, IOptions<AppSettings> configuration, ICacheService cacheService, Amadeus amadeus)
     {
         _httpService = httpService;
-        _configuration = configuration;
+        _appSettings = configuration.Value;
         _cacheService = cacheService;
         _amadeus = amadeus;
     }
@@ -31,11 +32,11 @@ public class ApiService : IApiService
             return tokenData.BearerToken ?? string.Empty;
         }
 
-        var url = _configuration["Amadeus_token_endpointUrl"];
+        var url = _appSettings.ExternalApi.Amadeus.TokenEndpointUrl;
         var content = new FormUrlEncodedContent(new[]
         {
-            new KeyValuePair<string, string>("client_id", _configuration["Amadeus_client_id"] ?? throw new ArgumentNullException(nameof(_configuration),"unable to find client id")),
-            new KeyValuePair<string, string>("client_secret", _configuration["Amadeus_client_secret"] ?? throw new ArgumentNullException(nameof(_configuration),"unable to find client secret") ),
+            new KeyValuePair<string, string>("client_id", _appSettings.ExternalApi.Amadeus.ClientId ?? throw new ArgumentNullException(nameof(_appSettings),"unable to find client id")),
+            new KeyValuePair<string, string>("client_secret", _appSettings.ExternalApi.Amadeus.ClientSecret ?? throw new ArgumentNullException(nameof(_appSettings),"unable to find client secret") ),
             new KeyValuePair<string, string>("grant_type", "client_credentials")
         });
         content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/x-www-form-urlencoded");
