@@ -23,24 +23,7 @@ public class AirportRepository : IAirportRepository
         _cacheService = cacheService;
     }
 
-    public Task<List<Airport>> GetAirportsAsync()
-    {
-        return GetAllAirportsAsync();
-    }
-
-    public async Task<bool> IsAirportValidAsync(string airportCode)
-    {
-        if (_cacheService.Contains(CacheEntry.AllAirports))
-        {
-            var airports = _cacheService.GetItem<List<Airport>>(CacheEntry.AllAirports);
-            return airports?.Any(airport => string.Equals(airport.Code, airportCode, StringComparison.OrdinalIgnoreCase)) ?? false;
-        }
-
-        return await ReadUsAirportsAsync()
-            .AnyAsync(airport => string.Equals(airport.Code, airportCode, StringComparison.OrdinalIgnoreCase));
-    }
-
-    private async Task<List<Airport>> GetAllAirportsAsync()
+    public async Task<List<Airport>> GetAirportsAsync()
     {
         if (_cacheService.Contains(CacheEntry.AllAirports))
         {
@@ -57,6 +40,17 @@ public class AirportRepository : IAirportRepository
         return airports;
     }
 
+    public async Task<bool> IsAirportValidAsync(string airportCode)
+    {
+        if (_cacheService.Contains(CacheEntry.AllAirports))
+        {
+            var airports = _cacheService.GetItem<List<Airport>>(CacheEntry.AllAirports);
+            return airports?.Any(airport => string.Equals(airport.Code, airportCode, StringComparison.OrdinalIgnoreCase)) ?? false;
+        }
+
+        return await ReadUsAirportsAsync()
+            .AnyAsync(airport => string.Equals(airport.Code, airportCode, StringComparison.OrdinalIgnoreCase));
+    }
     private async IAsyncEnumerable<Airport> ReadUsAirportsAsync()
     {
         if (!await _blobStorageRepository.DoesBlobExistAsync())
