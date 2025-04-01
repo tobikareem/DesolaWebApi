@@ -12,15 +12,28 @@ public class AirportRepository : IAirportRepository
 {
     private readonly IBlobClientRepository _blobStorageRepository;
     private readonly ICacheService _cacheService;
-    private static readonly HashSet<string> ExcludedAirportTypes = new(StringComparer.OrdinalIgnoreCase)
-    {
-        "heliport", "closed", "seaplane", "seaplane_base"
-    };
-
     public AirportRepository(IBlobClientRepository blobStorageRepository, ICacheService cacheService)
     {
         _blobStorageRepository = blobStorageRepository;
         _cacheService = cacheService;
+    }
+
+
+    public async Task<IEnumerable<Airport>> SearchAirportsAsync(string query)
+    {
+        var airports = await GetAirportsAsync();
+
+        if (string.IsNullOrWhiteSpace(query))
+            return new List<Airport>();
+
+        query = query.Trim().ToLowerInvariant();
+
+        return airports
+            .Where(a =>
+                (!string.IsNullOrEmpty(a.Name) && a.Name.ToLowerInvariant().Contains(query)) ||
+                (!string.IsNullOrEmpty(a.City) && a.City.ToLowerInvariant().Contains(query)) ||
+                (!string.IsNullOrEmpty(a.Code) && a.Code.ToLowerInvariant().Contains(query)))
+            .Take(10);
     }
 
     public async Task<List<Airport>> GetAirportsAsync()
@@ -69,9 +82,7 @@ public class AirportRepository : IAirportRepository
 
         await foreach (var record in csv.GetRecordsAsync<Airport>())
         {
-            if (!string.IsNullOrWhiteSpace(record.Code) &&
-                string.Equals(record.CountryCode, "US", StringComparison.OrdinalIgnoreCase) &&
-                !ExcludedAirportTypes.Contains(record.AirportType))
+            if (!string.IsNullOrWhiteSpace(record.Code) && string.Equals(record.CountryCode, "US", StringComparison.OrdinalIgnoreCase) &&  string.Equals(record.AirportType, "large_airport", StringComparison.OrdinalIgnoreCase))
             {
                 yield return record;
             }
