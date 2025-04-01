@@ -4,71 +4,60 @@ using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Models;
 using System.Net;
-using DesolaDomain.Interfaces;
-using DesolaDomain.Settings;
+using DesolaDomain.Model;
 using MediatR;
 using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Attributes;
 using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Enums;
-using DesolaServices.Commands.Queries;
-using Microsoft.Extensions.Options;
+using DesolaServices.Commands.Queries.Airports;
+using DesolaServices.DataTransferObjects.Responses;
 
 namespace Desola.Functions.Endpoints.Functions;
 
 public class Airports
 {
     private readonly ILogger<Airports> _logger;
-    private readonly IAirportRepository _airportRepository;
     private readonly IMediator _mediator;
-    private readonly AppSettings _appSettings;
 
-    public Airports(ILogger<Airports> logger, IAirportRepository airportRepository, IMediator mediator, IOptions<AppSettings> settings)
+    public Airports(
+        ILogger<Airports> logger,
+        IMediator mediator)
     {
         _logger = logger;
-        _airportRepository = airportRepository;
         _mediator = mediator;
-        _appSettings = settings.Value;
     }
 
     [Function("Airports")]
-    [OpenApiOperation(operationId: "Run", tags: new[] { "airports" })]
+    [OpenApiOperation("GetAllAirports", tags: new[] { "airports" })]
     [OpenApiSecurity("function_key", SecuritySchemeType.ApiKey, Name = "code", In = OpenApiSecurityLocationType.Header)]
-    [OpenApiParameter(name: "name", In = ParameterLocation.Query, Required = true, Type = typeof(string),
-        Description = "The **Name** parameter")]
-    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "text/plain", bodyType: typeof(string),
-        Description = "The OK response")]
-
-    public async Task<IActionResult> Run(
-        [HttpTrigger(AuthorizationLevel.Function, "get", "post", Route = "airports")] HttpRequest req)
+    [OpenApiResponseWithBody(HttpStatusCode.OK, "application/json", typeof(List<AirportBasicResponse>), Description = "Returns all airports")]
+    public async Task<IActionResult> GetAllAirports(
+        [HttpTrigger(AuthorizationLevel.Function, "get", Route = "airports")] HttpRequest req)
     {
-        _logger.LogInformation("C# HTTP trigger function processed a request.");
+        _logger.LogInformation("Processing request to retrieve all airports.");
 
-        var airports = await _airportRepository.GetAirportsAsync();
+        var airports = await _mediator.Send(new GetAllAirportsQuery());
 
         return new OkObjectResult(airports);
     }
 
-
     [Function("AirportsAutoComplete")]
-    [OpenApiOperation(operationId: "GetAirportAutoComplete", tags: new[] { "airports" })]
+    [OpenApiOperation("GetAirportAutoComplete", tags: new[] { "airports" })]
     [OpenApiSecurity("function_key", SecuritySchemeType.ApiKey, Name = "code", In = OpenApiSecurityLocationType.Header)]
-    [OpenApiParameter(name: "name", In = ParameterLocation.Query, Required = true, Type = typeof(string),
-        Description = "The **Name** parameter")]
-    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "text/plain", bodyType: typeof(string),
-        Description = "The OK response")]
+    [OpenApiParameter(name: "name", In = ParameterLocation.Query, Required = true, Type = typeof(string), Description = "Search term for airport autocomplete")]
+    [OpenApiResponseWithBody(HttpStatusCode.OK, "application/json", typeof(List<AirportBasicResponse>), Description = "Autocomplete airport list")]
     public async Task<IActionResult> GetAirportAutoComplete(
         [HttpTrigger(AuthorizationLevel.Function, "get", "post", Route = "airports/autocomplete")] HttpRequest req)
     {
-        _logger.LogInformation("C# HTTP trigger function processed a request.");
+        _logger.LogInformation("Processing airport autocomplete request.");
 
         var query = req.Query["name"].ToString();
-
-        if (string.IsNullOrEmpty(query))
+        if (string.IsNullOrWhiteSpace(query))
         {
-            return new BadRequestObjectResult("Name parameter is required.");
+            _logger.LogWarning("Missing required 'name' parameter in autocomplete request.");
+            return new BadRequestObjectResult(new { error = "The 'name' parameter is required." });
         }
 
-        var airports = await _mediator.Send(new AirportAutoCompleteQuery(query));
-
+        var airports = await _mediator.Send(new GetAirportAutoCompleteQuery(query));
         return new OkObjectResult(airports);
     }
 }

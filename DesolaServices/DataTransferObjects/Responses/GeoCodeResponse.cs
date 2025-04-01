@@ -1,0 +1,7 @@
+﻿namespace DesolaServices.DataTransferObjects.Responses;
+
+public class GeoCodeResponse
+{
+    public double Latitude { get; set; }
+    public double Longitude { get; set; }
+}
