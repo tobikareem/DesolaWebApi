@@ -1,11 +1,13 @@
 using DesolaServices.DataTransferObjects.Requests;
+using DesolaServices.Commands.Queries;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
+using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Attributes;
 using Microsoft.Extensions.Logging;
-using MediatR;
 using Newtonsoft.Json;
-using DesolaServices.Commands.Queries;
+using System.Net;
+using MediatR;
 
 namespace Desola.Functions.Endpoints.Functions;
 
@@ -13,6 +15,7 @@ public class FlightSearch
 {
     private readonly ILogger<FlightSearch> _logger;
     private readonly IMediator _mediator;
+
     public FlightSearch(ILogger<FlightSearch> logger, IMediator mediator)
     {
         _logger = logger;
@@ -20,62 +23,68 @@ public class FlightSearch
     }
 
     [Function("FlightSearch")]
-    public async Task<IActionResult> RunBasicSearch([HttpTrigger("get", "post", Route = "flight/search")] HttpRequest req, SearchBasicFlightQuery query, CancellationToken cancellationToken)
+    [OpenApiOperation("SearchBasicFlights", tags: new[] { "Flights" })]
+    [OpenApiRequestBody("application/json", typeof(FlightSearchBasicRequest), Required = true, Description = "Basic flight search input")]
+    [OpenApiResponseWithBody(HttpStatusCode.OK, "application/json", typeof(Dictionary<string, object>), Description = "Returns grouped flight itineraries")]
+    public async Task<IActionResult> RunBasicSearch(
+        [HttpTrigger(AuthorizationLevel.Function, "post", Route = "flight/search")] HttpRequest req,
+        CancellationToken cancellationToken)
     {
-        _logger.LogInformation("C# HTTP trigger function processed a request.");
+        _logger.LogInformation("Basic flight search triggered.");
 
         var requestBody = await new StreamReader(req.Body).ReadToEndAsync(cancellationToken);
         var data = JsonConvert.DeserializeObject<FlightSearchBasicRequest>(requestBody);
 
-        if (data == null)
+        if (data is null)
         {
-            throw new ArgumentNullException(nameof(data));
+            return new BadRequestObjectResult("Invalid or missing flight search parameters.");
         }
 
-        var response = await _mediator.Send(new SearchBasicFlightQuery(new FlightSearchBasicRequest
-        {
-            Adults = data.Adults,
-            Origin = data.Origin,
-            Destination = data.Destination,
-            DepartureDate = data.DepartureDate,
-            ReturnDate = data.ReturnDate,
-            MaxResults = data.MaxResults
-
-        }), cancellationToken);
-        return new OkObjectResult(response);
+        var result = await _mediator.Send(new SearchBasicFlightQuery(data), cancellationToken);
+        return new OkObjectResult(result);
     }
 
     [Function("FlightSearchAdvanced")]
-    public async Task<IActionResult> RunAdvancedSearch([HttpTrigger("post", Route = "flight/search/advance")] HttpRequest req, SearchAdvancedFlightQuery query)
+    [OpenApiOperation("SearchAdvancedFlights", tags: new[] { "Flights" })]
+    [OpenApiRequestBody("application/json", typeof(FlightSearchAdvancedRequest), Required = true, Description = "Advanced multi-leg flight search input")]
+    [OpenApiResponseWithBody(HttpStatusCode.OK, "application/json", typeof(Dictionary<string, object>), Description = "Returns advanced grouped flight itineraries")]
+    public async Task<IActionResult> RunAdvancedSearch(
+        [HttpTrigger(AuthorizationLevel.Function, "post", Route = "flight/search/advance")] HttpRequest req,
+        CancellationToken cancellationToken)
     {
-        _logger.LogInformation("C# HTTP trigger function processed a request.");
-        var requestBody = await new StreamReader(req.Body).ReadToEndAsync();
+        _logger.LogInformation("Advanced flight search triggered.");
+
+        var requestBody = await new StreamReader(req.Body).ReadToEndAsync(cancellationToken);
         var data = JsonConvert.DeserializeObject<FlightSearchAdvancedRequest>(requestBody);
 
-        if (data == null)
+        if (data is null)
         {
-            throw new ArgumentNullException(nameof(data));
+            return new BadRequestObjectResult("Invalid or missing advanced flight parameters.");
         }
 
-        var response = await _mediator.Send(new SearchAdvancedFlightQuery(data));
-        return new OkObjectResult(response);
+        var result = await _mediator.Send(new SearchAdvancedFlightQuery(data), cancellationToken);
+        return new OkObjectResult(result);
     }
 
     [Function("SkyScannerFlightSearch")]
-    public async Task<IActionResult> SkyScannerFlightSearch([HttpTrigger("post", Route = "flight/search/skyscanner")] HttpRequest req)
+    [OpenApiOperation("SearchSkyScannerFlights", tags: new[] { "Flights" })]
+    [OpenApiRequestBody("application/json", typeof(SkyScannerFlightRequest), Required = true, Description = "SkyScanner search input")]
+    [OpenApiResponseWithBody(HttpStatusCode.OK, "application/json", typeof(Dictionary<string, object>), Description = "Returns itineraries from SkyScanner source")]
+    public async Task<IActionResult> RunSkyScannerSearch(
+        [HttpTrigger(AuthorizationLevel.Function, "post", Route = "flight/search/skyscanner")] HttpRequest req,
+        CancellationToken cancellationToken)
     {
-        _logger.LogInformation("C# HTTP trigger function processed a request.");
-        var requestBody = await new StreamReader(req.Body).ReadToEndAsync();
+        _logger.LogInformation("SkyScanner flight search triggered.");
 
+        var requestBody = await new StreamReader(req.Body).ReadToEndAsync(cancellationToken);
         var data = JsonConvert.DeserializeObject<SkyScannerFlightRequest>(requestBody);
 
-        if (data == null)
+        if (data is null)
         {
-            throw new ArgumentNullException(nameof(data));
+            return new BadRequestObjectResult("Invalid SkyScanner flight request.");
         }
 
-        var response = await _mediator.Send(new SearchSkyScannerFlightQuery(data));
-        return new OkObjectResult(response);
+        var result = await _mediator.Send(new SearchSkyScannerFlightQuery(data), cancellationToken);
+        return new OkObjectResult(result);
     }
-
 }
