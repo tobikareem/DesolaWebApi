@@ -59,7 +59,7 @@ public class Airlines
     [OpenApiResponseWithBody(
         statusCode: HttpStatusCode.OK,
         contentType: "application/json",
-        bodyType: typeof(IEnumerable<object>),
+        bodyType: typeof(IEnumerable<Airlines>),
         Description = "Returns route information served by the airline.")]
     [OpenApiResponseWithoutBody(
         statusCode: HttpStatusCode.NotFound,

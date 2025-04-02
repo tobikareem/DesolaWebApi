@@ -1,6 +1,6 @@
 ﻿using AutoMapper;
 using DesolaDomain.Aggregates;
-using DesolaDomain.Entities.Flights;
+using DesolaDomain.Entities.AmadeusFields;
 using DesolaServices.DataTransferObjects.Responses;
 
 namespace DesolaServices.Mapping;

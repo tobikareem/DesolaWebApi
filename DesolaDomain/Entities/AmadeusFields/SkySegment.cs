@@ -1,23 +1,25 @@
 ﻿using System.Text.Json.Serialization;
-using DesolaDomain.Entities.AmadeusFields;
+using DesolaDomain.Aggregates;
 
-namespace DesolaDomain.Aggregates;
+namespace DesolaDomain.Entities.AmadeusFields;
 
-public class SkyScannerLeg
+public class SkySegment
 {
-    [JsonPropertyName("id")]
-    public string Id { get; set; }
-
     [JsonPropertyName("origin")]
     public SkyScannerLocation Origin { get; set; }
 
     [JsonPropertyName("destination")]
     public SkyScannerLocation Destination { get; set; }
 
+    [JsonPropertyName("marketingCarrier")]
+    public SkyScannerCarrier MarketingCarrier{ get; set; }
+
+
     [JsonPropertyName("durationInMinutes")]
     public int DurationInMinutes { get; set; }
 
-    public int StopCount { get; set; }
+    [JsonPropertyName("flightNumber")]
+    public string FlightNumber { get; set; }
 
     [JsonPropertyName("departure")]
     public DateTime Departure { get; set; }
@@ -25,9 +27,7 @@ public class SkyScannerLeg
     [JsonPropertyName("arrival")]
     public DateTime Arrival { get; set; }
 
-    [JsonPropertyName("carriers")]
-    public SkyScannerCarriers Carriers { get; set; }
 
-    [JsonPropertyName("segments")]
-    public List<SkySegment> Segments { get; set; }
+    [JsonPropertyName("operatingCarrier")]
+    public SkyScannerCarrier OperatingCarrier { get; set; }
 }

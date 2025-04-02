@@ -15,13 +15,15 @@ public class AirlineRouteService : IAirlineRouteService
     private readonly IApiService _apiService;
     private readonly IAirlineRepository _airlineRepository;
     private readonly IMapper _mapper;
+    private readonly AmadeusApi _amadeusConfig;
 
-    public AirlineRouteService(IOptions<AppSettings> configuration, IApiService apiService, IAirlineRepository airlineRepository, IMapper mapper)
+    public AirlineRouteService(IOptions<AppSettings> configuration, IApiService apiService, IAirlineRepository airlineRepository, IMapper mapper, IOptions<AppSettings> settingsOptions)
     {
         _configuration = configuration.Value;
         _apiService = apiService;
         _airlineRepository = airlineRepository;
         _mapper = mapper;
+        _amadeusConfig = settingsOptions.Value.ExternalApi.Amadeus;
     }
 
     public async Task<List<FlightRouteResponse>> GetAirportRoutesAsync(string airlineCode, int max, string countyCode, CancellationToken cancellationToken)
@@ -36,7 +38,7 @@ public class AirlineRouteService : IAirlineRouteService
 
         var uri = BuildSearchUri(airlineCode, countyCode, max);
 
-        var accessToken = await _apiService.FetchAccessTokenAsync();
+        var accessToken = await _apiService.FetchAccessTokenAsync(_amadeusConfig.TokenEndpointUrl, _amadeusConfig.ClientId, _amadeusConfig.ClientSecret, _amadeusConfig.ProviderName);
 
         var request = new HttpRequestMessage(HttpMethod.Get, uri)
         {
