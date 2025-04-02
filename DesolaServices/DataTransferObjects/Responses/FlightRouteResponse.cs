@@ -10,17 +10,3 @@ public class FlightRouteResponse
     public AddressResponse Address { get; set; }
     public string TimeZone { get; set; }
 }
-
-public class GeoCodeResponse
-{
-    public double Latitude { get; set; }
-    public double Longitude { get; set; }
-}
-
-public class AddressResponse
-{
-    public string CountryName { get; set; }
-    public string CountryCode { get; set; }
-    public string StateCode { get; set; }
-    public string RegionCode { get; set; }
-}

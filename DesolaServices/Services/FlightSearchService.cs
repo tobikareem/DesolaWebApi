@@ -7,8 +7,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System.Web;
 using AutoMapper;
-using System.Text;
-using System.Text.Json;
+using DesolaDomain.Entities.AmadeusFields.Response;
 using DesolaDomain.Model;
 
 namespace DesolaServices.Services;
@@ -35,79 +34,81 @@ internal class FlightSearchService : IFlightSearchService
 
     public async Task<Dictionary<string, FlightItineraryGroupResponse>> SearchFlightsAsync(FlightSearchBasicRequest criteria, CancellationToken cancellationToken)
     {
-        try
-        {
+        throw new NotImplementedException();
+        //try
+        //{
 
-            _airports = await _airportRepository.GetAirportsAsync();
+        //    _airports = await _airportRepository.GetAirportsAsync();
 
-            ValidateAirportCode(criteria.Origin, criteria.Destination);
-            var uri = BuildBasicFlightSearchUri(criteria);
+        //    ValidateAirportCode(criteria.Origin, criteria.Destination);
+        //    var uri = BuildBasicFlightSearchUri(criteria);
 
-            var accessToken = await _apiService.FetchAccessTokenAsync();
+        //    var accessToken = await _apiService.FetchAccessTokenAsync("", TODO, TODO, TODO);
 
-            var request = new HttpRequestMessage(HttpMethod.Get, uri)
-            {
-                Headers = { { "Authorization", $"{accessToken}" } }
-            };
+        //    var request = new HttpRequestMessage(HttpMethod.Get, uri)
+        //    {
+        //        Headers = { { "Authorization", $"{accessToken}" } }
+        //    };
 
-            var response = await _apiService.SendAsync<FlightOffer>(request, cancellationToken);
+        //    var response = await _apiService.SendAsync<FlightOffer>(request, cancellationToken);
 
-            var flightSearchResponse = await GroupItineraries(response, criteria.SortBy, criteria.SortOrder);
+        //    var flightSearchResponse = await GroupItineraries(response, criteria.SortBy, criteria.SortOrder);
 
-            return flightSearchResponse;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error occurred while searching flights");
-            throw;
-        }
+        //    return flightSearchResponse;
+        //}
+        //catch (Exception ex)
+        //{
+        //    _logger.LogError(ex, "Error occurred while searching flights");
+        //    throw;
+        //}
     }
 
     public async Task<Dictionary<string, FlightItineraryGroupResponse>> SearchAdvancedFlightsAsync(
         FlightSearchAdvancedRequest criteria, CancellationToken cancellationToken)
     {
-        try
-        {
-            var uri = new Uri(_configuration["AmadeusApi_BaseUrl"] + "/v2/shopping/flight-offers");
+        throw new NotImplementedException();
+        //try
+        //{
+        //    var uri = new Uri(_configuration["AmadeusApi_BaseUrl"] + "/v2/shopping/flight-offers");
 
-            _airports = await _airportRepository.GetAirportsAsync();
+        //    _airports = await _airportRepository.GetAirportsAsync();
 
-            foreach (var originDestination in criteria.OriginDestinations)
-            {
-                ValidateAirportCode(originDestination.OriginLocationCode, originDestination.DestinationLocationCode);
-            }
+        //    foreach (var originDestination in criteria.OriginDestinations)
+        //    {
+        //        ValidateAirportCode(originDestination.OriginLocationCode, originDestination.DestinationLocationCode);
+        //    }
 
 
-            var requestCriteria = JsonSerializer.Serialize(criteria);
-            var requestContent = new StringContent(requestCriteria, Encoding.UTF8, "application/json");
+        //    var requestCriteria = JsonSerializer.Serialize(criteria);
+        //    var requestContent = new StringContent(requestCriteria, Encoding.UTF8, "application/json");
 
-            var accessToken = await _apiService.FetchAccessTokenAsync();
+        //    var accessToken = await _apiService.FetchAccessTokenAsync("", TODO, TODO, TODO);
 
-            var request = new HttpRequestMessage(HttpMethod.Post, uri)
-            {
-                Content = requestContent,
-                Headers =
-                {
-                    { "Authorization", $"{accessToken}" },
-                    { "X-HTTP-Method-Override", "GET" } // intentional override.
-                    
-                }
-            };
+        //    var request = new HttpRequestMessage(HttpMethod.Post, uri)
+        //    {
+        //        Content = requestContent,
+        //        Headers =
+        //        {
+        //            { "Authorization", $"{accessToken}" },
+        //            { "X-HTTP-Method-Override", "GET" } // intentional override.
 
-            var response = await _apiService.SendAsync<FlightOffer>(request, cancellationToken);
+        //        }
+        //    };
 
-            var flightSearchResponse = await GroupItineraries(response, criteria.SortBy, criteria.SortOrder);
+        //    var response = await _apiService.SendAsync<FlightOffer>(request, cancellationToken);
 
-            return flightSearchResponse;
+        //    var flightSearchResponse = await GroupItineraries(response, criteria.SortBy, criteria.SortOrder);
 
-            // return flightSearchResponse.Where(x => x.Value.Departure.NumberOfStopOver == criteria.MaxNumberOfStopOver).ToDictionary();
+        //    return flightSearchResponse;
 
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error occurred while searching advanced flights");
-            throw;
-        }
+        //    // return flightSearchResponse.Where(x => x.Value.Departure.NumberOfStopOver == criteria.MaxNumberOfStopOver).ToDictionary();
+
+        //}
+        //catch (Exception ex)
+        //{
+        //    _logger.LogError(ex, "Error occurred while searching advanced flights");
+        //    throw;
+        //}
     }
 
     public async Task<Dictionary<string, FlightItineraryGroupResponse>> SearchSkyScannerFlightsAsync(SkyScannerFlightRequest criteria, CancellationToken cancellationToken)
@@ -224,7 +225,7 @@ internal class FlightSearchService : IFlightSearchService
         return string.IsNullOrWhiteSpace(criteria.SortBy) && string.IsNullOrWhiteSpace(criteria.SortOrder) ? itineraries : ApplySorting(itineraries, criteria.SortBy, criteria.SortOrder);
     }
 
-    private async Task<Dictionary<string, FlightItineraryGroupResponse>> GroupItineraries(FlightOffer flightOffer, string sortBy, string sortOrder)
+    private async Task<Dictionary<string, FlightItineraryGroupResponse>> GroupItineraries(AmadeusFlightOffersResponse flightOffer, string sortBy, string sortOrder)
     {
         var itineraries = new Dictionary<string, FlightItineraryGroupResponse>();
         var airlines = await _airlineRepository.GetAllAsync();
@@ -236,7 +237,7 @@ internal class FlightSearchService : IFlightSearchService
             FlightItineraryResponse departureItinerary = null;
             FlightItineraryResponse returnItinerary = null;
 
-            foreach (var itinerary in data.Itineraries)
+            foreach (var itinerary in data.itineraries)
             {
 
                 // modify the airline code to the airline name
@@ -245,18 +246,18 @@ internal class FlightSearchService : IFlightSearchService
                     continue;
                 }
 
-                itinerary.Segments.ForEach(x =>
+                itinerary.segments.ForEach(x =>
                 {
-                    var airline = airlines.FirstOrDefault(a => a.IataCode == x.CarrierCode);
+                    var airline = airlines.FirstOrDefault(a => a.IataCode == x.carrierCode);
                     if (airline != null)
                     {
-                        x.CarrierCode += $" - {airline.Name}";
+                        x.carrierCode += $" - {airline.Name}";
                     }
                 });
 
 
                 var itineraryResponse = _mapper.Map<FlightItineraryResponse>(itinerary);
-                totalPrice = data.Price.GrandTotal;
+                totalPrice = data.price.grandTotal;
 
                 if (departureItinerary == null)
                 {

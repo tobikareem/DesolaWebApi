@@ -13,6 +13,8 @@
     <PackageReference Include="Microsoft.Extensions.Caching.Abstractions" Version="8.0.0" />
     <PackageReference Include="CsvHelper" Version="32.0.3" />
     <PackageReference Include="Microsoft.Extensions.Http" Version="8.0.0" />
+
+    <PackageReference Include="AutoMapper" Version="13.0.1" />
   </ItemGroup>
 
   <ItemGroup>
@@ -20,6 +22,8 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Folder Include="External\Kiwi\" />
+    <Folder Include="External\SkyScanner\" />
     <Folder Include="Services\Identity\Authentication\" />
   </ItemGroup>
 

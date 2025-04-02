@@ -373,3 +373,15 @@ FodyWeavers.xsd
 /DesolaDomain/api
 /DesolaInfrastructure/api
 /DesolaInfrastructure/articles
+/DesolaInfrastructure/.gitignore
+/DesolaInfrastructure/docfx.json
+/DesolaInfrastructure/index.md
+/DesolaInfrastructure/toc.yml
+/DesolaServices/articles/toc.yml
+/DesolaServices/articles/intro.md
+/DesolaServices/.gitignore
+/DesolaServices/docfx.json
+/DesolaServices/index.md
+/DesolaServices/toc.yml
+/DesolaServices/api
+/DesolaDomain/_site

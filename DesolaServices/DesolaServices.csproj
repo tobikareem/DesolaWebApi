@@ -18,10 +18,4 @@
     <ProjectReference Include="..\DesolaDomain\DesolaDomain.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Services\Engines\Amadeus\" />
-    <Folder Include="Services\Engines\Kiwi\" />
-    <Folder Include="Services\Engines\SkyScanner\" />
-  </ItemGroup>
-
 </Project>

@@ -1,5 +1,6 @@
-﻿using DesolaDomain.Entities.Flights;
-using System.Text.Json.Serialization;
+﻿using System.Text.Json.Serialization;
+using amadeus.resources;
+
 namespace DesolaDomain.Aggregates;
 
 public class AirportRoute
@@ -8,38 +9,5 @@ public class AirportRoute
     public Meta Meta { get; set; }
 
     [JsonPropertyName("data")]
-    public List<RouteLocation> Data { get; set; }
-}
-
-public class RouteLocation
-{
-    [JsonPropertyName("type")]
-    public string Type;
-
-    [JsonPropertyName("subtype")]
-    public string Subtype;
-
-    [JsonPropertyName("name")]
-    public string Name;
-
-    [JsonPropertyName("iataCode")]
-    public string IataCode;
-
-    [JsonPropertyName("geoCode")]
-    public GeoCode GeoCode;
-
-    [JsonPropertyName("address")]
-    public Address Address;
-
-    [JsonPropertyName("timeZone")]
-    public RouteTimeZone TimeZone;
-}
-
-public class GeoCode
-{
-    [JsonPropertyName("latitude")]
-    public double Latitude;
-
-    [JsonPropertyName("longitude")]
-    public double Longitude;
+    public List<dynamic> Data { get; set; }
 }
