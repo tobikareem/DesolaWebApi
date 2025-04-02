@@ -9,8 +9,10 @@ using DesolaDomain.Interfaces;
 using DesolaDomain.Settings;
 using DesolaInfrastructure.Data;
 using DesolaInfrastructure.External;
+using DesolaInfrastructure.External.Amadeus;
 using DesolaInfrastructure.Services.Implementations;
 using Microsoft.Extensions.DependencyInjection;
+using System.Reflection;
 
 namespace DesolaInfrastructure;
 
@@ -39,6 +41,9 @@ public static class ServiceCollection
         services.AddScoped<IHttpService, HttpService>();
         services.AddScoped<IApiService, ApiService>();
         services.AddScoped<IAmadeusService, AmadeusService>();
+
+        services.AddAutoMapper(Assembly.GetExecutingAssembly());
+        services.AddScoped<IFlightProvider, AmadeusFlightProvider>();
 
         var amadeus = Amadeus
             .builder(configuration.ExternalApi.Amadeus.ClientId, configuration.ExternalApi.Amadeus.ClientSecret)

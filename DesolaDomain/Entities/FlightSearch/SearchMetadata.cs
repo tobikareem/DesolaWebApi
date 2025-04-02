@@ -1,4 +1,6 @@
-﻿namespace DesolaDomain.Entities.FlightSearch;
+﻿using DesolaDomain.Entities.AmadeusFields.Basic;
+
+namespace DesolaDomain.Entities.FlightSearch;
 
 public class SearchMetadata
 {
