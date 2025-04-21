@@ -8,6 +8,7 @@ using DesolaDomain.Entities.AmadeusFields.Basic;
 using Microsoft.Extensions.Logging;
 using Desola.Common.Exceptions;
 using DesolaDomain.Entities.AmadeusFields.Response;
+using DesolaInfrastructure.FlightSort;
 
 namespace DesolaInfrastructure.External.Amadeus;
 
@@ -17,12 +18,13 @@ public class AmadeusFlightProvider : IFlightProvider
     private readonly AmadeusApi _amadeusConfig;
     private readonly ILogger<AmadeusFlightProvider> _logger;
     private readonly IMapper _mapper;
-
-    public AmadeusFlightProvider(IApiService apiService, IOptions<AppSettings> settingsOptions, ILogger<AmadeusFlightProvider> logger, IMapper mapper)
+    private readonly IAirlineRepository _airlineRepository;
+    public AmadeusFlightProvider(IApiService apiService, IOptions<AppSettings> settingsOptions, ILogger<AmadeusFlightProvider> logger, IMapper mapper, IAirlineRepository airlineRepository)
     {
         _apiService = apiService;
         _logger = logger;
         _mapper = mapper;
+        _airlineRepository = airlineRepository;
         _amadeusConfig = settingsOptions.Value.ExternalApi.Amadeus;
     }
 
@@ -44,10 +46,21 @@ public class AmadeusFlightProvider : IFlightProvider
             {
                 Headers = { { "Authorization", $"{accessToken}" } }
             };
-            
-            var flightOffers =  await _apiService.SendAsync<AmadeusFlightOffersResponse>(request, cancellationToken);
 
-            var response = _mapper.Map<UnifiedFlightSearchResponse>(flightOffers.Data);
+
+            var airlinesTask = _airlineRepository.GetAllAsync();
+            var flightOffersTask = _apiService.SendAsync<AmadeusFlightOffersResponse>(request, cancellationToken);
+
+            await Task.WhenAll(flightOffersTask, airlinesTask);
+
+            var flightOffers = flightOffersTask.Result;
+            var airlines = airlinesTask.Result;
+            
+            var response = _mapper.Map<UnifiedFlightSearchResponse>(flightOffers.Data, opt =>
+                opt.Items["Airlines"] = airlines);
+
+
+            UnifiedFlightSortedResponse.ApplySorting(response, parameters.SortBy, parameters.SortOrder);
 
             return response;
         }

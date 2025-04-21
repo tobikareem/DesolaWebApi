@@ -45,10 +45,10 @@ public static class ServiceCollection
         services.AddAutoMapper(Assembly.GetExecutingAssembly());
         services.AddScoped<IFlightProvider, AmadeusFlightProvider>();
 
-        var amadeus = Amadeus
-            .builder(configuration.ExternalApi.Amadeus.ClientId, configuration.ExternalApi.Amadeus.ClientSecret)
-            .build();
-        services.AddSingleton(amadeus);
+        //var amadeus = Amadeus
+        //    .builder(configuration.ExternalApi.Amadeus.ClientId, configuration.ExternalApi.Amadeus.ClientSecret)
+        //    .build();
+        //services.AddSingleton(amadeus);
 
 
         return services;
