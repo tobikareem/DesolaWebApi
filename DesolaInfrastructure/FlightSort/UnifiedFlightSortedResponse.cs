@@ -6,7 +6,7 @@ public class UnifiedFlightSortedResponse
 {
     public static void ApplySorting(UnifiedFlightSearchResponse flightSearchResponse, string sortBy, string sortOrder)
     {
-        if(flightSearchResponse == null || flightSearchResponse.Offers.Any())
+        if(flightSearchResponse == null || !flightSearchResponse.Offers.Any())
         {
             return;
         }
