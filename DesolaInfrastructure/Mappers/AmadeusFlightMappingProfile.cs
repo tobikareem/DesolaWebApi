@@ -76,6 +76,9 @@ public class AmadeusFlightMappingProfile : Profile
         {
             throw new InvalidOperationException("The 'Airlines' key is missing from the resolution context items.");
         }
+
+        var airlines = context.Items["Airlines"] as List<DesolaDomain.Model.Airline>;
+
         var airlineName = airlines?.FirstOrDefault(a => a.IataCode == airlineCode)?.Name ?? "Unknown Airline";
 
         return $"{airlineCode} - {airlineName}";
