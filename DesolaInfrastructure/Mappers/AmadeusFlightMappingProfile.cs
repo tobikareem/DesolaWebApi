@@ -72,7 +72,10 @@ public class AmadeusFlightMappingProfile : Profile
         };
 
         // Retrieve the list of airlines from the context and lookup by IATA code
-        var airlines = context.Items["Airlines"] as List<DesolaDomain.Model.Airline>;
+        if (!context.Items.ContainsKey("Airlines"))
+        {
+            throw new InvalidOperationException("The 'Airlines' key is missing from the resolution context items.");
+        }
         var airlineName = airlines?.FirstOrDefault(a => a.IataCode == airlineCode)?.Name ?? "Unknown Airline";
 
         return $"{airlineCode} - {airlineName}";
