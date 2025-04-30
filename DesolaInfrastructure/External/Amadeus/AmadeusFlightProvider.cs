@@ -8,6 +8,7 @@ using DesolaDomain.Entities.AmadeusFields.Basic;
 using Microsoft.Extensions.Logging;
 using Desola.Common.Exceptions;
 using DesolaDomain.Entities.AmadeusFields.Response;
+using DesolaInfrastructure.FlightSort;
 
 namespace DesolaInfrastructure.External.Amadeus;
 
@@ -17,12 +18,16 @@ public class AmadeusFlightProvider : IFlightProvider
     private readonly AmadeusApi _amadeusConfig;
     private readonly ILogger<AmadeusFlightProvider> _logger;
     private readonly IMapper _mapper;
+    private readonly IAirlineRepository _airlineRepository;
+    private readonly ICacheService _memoryCache;
 
-    public AmadeusFlightProvider(IApiService apiService, IOptions<AppSettings> settingsOptions, ILogger<AmadeusFlightProvider> logger, IMapper mapper)
+    public AmadeusFlightProvider(IApiService apiService, IOptions<AppSettings> settingsOptions, ILogger<AmadeusFlightProvider> logger, IMapper mapper, IAirlineRepository airlineRepository, ICacheService memoryCache)
     {
         _apiService = apiService;
         _logger = logger;
         _mapper = mapper;
+        _airlineRepository = airlineRepository;
+        _memoryCache = memoryCache;
         _amadeusConfig = settingsOptions.Value.ExternalApi.Amadeus;
     }
 
@@ -44,10 +49,34 @@ public class AmadeusFlightProvider : IFlightProvider
             {
                 Headers = { { "Authorization", $"{accessToken}" } }
             };
-            
-            var flightOffers =  await _apiService.SendAsync<AmadeusFlightOffersResponse>(request, cancellationToken);
 
-            var response = _mapper.Map<UnifiedFlightSearchResponse>(flightOffers.Data);
+            var cacheKey = $"{ProviderName}_{parameters.Origin}_{parameters.Destination}_{parameters.DepartureDate}_{parameters.ReturnDate}";
+
+            if (_memoryCache.Contains(cacheKey))
+            {
+                var cachedResponse = _memoryCache.GetItem<UnifiedFlightSearchResponse>(cacheKey);
+                if (cachedResponse != null)
+                {
+                    _logger.LogInformation($"Returning cached response for SkyScanner flight search: {cacheKey}");
+                    return cachedResponse;
+                }
+            }
+
+            var airlinesTask = _airlineRepository.GetAllAsync();
+            var flightOffersTask = _apiService.SendAsync<AmadeusFlightOffersResponse>(request, cancellationToken);
+
+            await Task.WhenAll(flightOffersTask, airlinesTask);
+
+            var flightOffers = flightOffersTask.Result;
+            var airlines = airlinesTask.Result;
+            
+            var response = _mapper.Map<UnifiedFlightSearchResponse>(flightOffers.Data, opt =>
+                opt.Items["Airlines"] = airlines);
+
+
+            UnifiedFlightSortedResponse.ApplySorting(response, parameters.SortBy, parameters.SortOrder);
+
+            _memoryCache.Add(cacheKey, response, TimeSpan.FromHours(10));
 
             return response;
         }
@@ -62,9 +91,7 @@ public class AmadeusFlightProvider : IFlightProvider
             _logger.LogError(ex, "Error searching for flights with Amadeus provider");
             throw;
         }
-
     }
-
 
     private Uri BuildBasicFlightSearchUri(FlightSearchParameters criteria)
     {

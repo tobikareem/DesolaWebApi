@@ -12,4 +12,6 @@ public class SkyScannerItinerary
 
     [JsonPropertyName("legs")]
     public List<SkyScannerLeg> Legs { get; set; }
+
+    public string DestinationImageUrl { get; set; }
 }

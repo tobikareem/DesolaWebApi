@@ -13,6 +13,7 @@ using DesolaInfrastructure.External.Amadeus;
 using DesolaInfrastructure.Services.Implementations;
 using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
+using DesolaInfrastructure.External.SkyScanner;
 
 namespace DesolaInfrastructure;
 
@@ -43,12 +44,21 @@ public static class ServiceCollection
         services.AddScoped<IAmadeusService, AmadeusService>();
 
         services.AddAutoMapper(Assembly.GetExecutingAssembly());
-        services.AddScoped<IFlightProvider, AmadeusFlightProvider>();
 
-        var amadeus = Amadeus
-            .builder(configuration.ExternalApi.Amadeus.ClientId, configuration.ExternalApi.Amadeus.ClientSecret)
-            .build();
-        services.AddSingleton(amadeus);
+
+        services.AddScoped<AmadeusFlightProvider>();
+        services.AddScoped<SkyScannerFlightProvider>();
+
+        services.AddScoped<IEnumerable<IFlightProvider>>(serviceProvider => new List<IFlightProvider>
+        {
+            serviceProvider.GetRequiredService<AmadeusFlightProvider>(),
+            serviceProvider.GetRequiredService<SkyScannerFlightProvider>()
+        });
+
+        //var amadeus = Amadeus
+        //    .builder(configuration.ExternalApi.Amadeus.ClientId, configuration.ExternalApi.Amadeus.ClientSecret)
+        //    .build();
+        //services.AddSingleton(amadeus);
 
 
         return services;

@@ -8,11 +8,11 @@ using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using System.Net;
 using DesolaDomain.Entities.AmadeusFields.Basic;
-using DesolaDomain.Interfaces;
 using MediatR;
-using System.ComponentModel.DataAnnotations;
+using Desola.Common;
 using Desola.Common.Exceptions;
 using DesolaDomain.Entities.FlightSearch;
+using DesolaServices.Commands.Queries.FlightSearch;
 
 namespace Desola.Functions.Endpoints.Functions;
 
@@ -21,13 +21,10 @@ public class FlightSearch
     private readonly ILogger<FlightSearch> _logger;
     private readonly IMediator _mediator;
 
-    private readonly IFlightProvider _flightProvider;
-
-    public FlightSearch(ILogger<FlightSearch> logger, IMediator mediator, IFlightProvider flightProvider)
+    public FlightSearch(ILogger<FlightSearch> logger, IMediator mediator )
     {
         _logger = logger;
         _mediator = mediator;
-        _flightProvider = flightProvider;
     }
 
     [Function("FlightSearch")]
@@ -114,8 +111,8 @@ public class FlightSearch
                 CabinClass = req.Query["travelClass"],
                 CurrencyCode = string.IsNullOrEmpty(req.Query["currencyCode"]) ? "USD" : req.Query["currencyCode"],
 
-                IncludedAirlineCodes = ParseCommaSeparatedList(req.Query["includedAirlineCodes"]),
-                ExcludedAirlineCodes = ParseCommaSeparatedList(req.Query["excludedAirlineCodes"])
+                IncludedAirlineCodes = Utils.ParseCommaSeparatedList(req.Query["includedAirlineCodes"]),
+                ExcludedAirlineCodes = Utils.ParseCommaSeparatedList(req.Query["excludedAirlineCodes"])
             };
 
             // Parse date values
@@ -136,26 +133,20 @@ public class FlightSearch
             }
 
             // Parse numeric values with defaults
-            parameters.Adults = ParseIntParameter(req.Query["adults"]) ?? throw new ArgumentException("Adults parameter is required and must be a valid integer");
-            parameters.Children = ParseIntParameter(req.Query["children"]) ?? 0;
-            parameters.Infants = ParseIntParameter(req.Query["infants"]) ?? 0;
-            parameters.MaxPrice = ParseIntParameter(req.Query["maxPrice"]);
-            parameters.MaxResults = ParseIntParameter(req.Query["max"]) ?? 250;
-            parameters.NonStop = ParseBoolParameter(req.Query["nonStop"]) ?? false;
+            parameters.Adults = Utils.ParseIntParameter(req.Query["adults"]) ?? throw new ArgumentException("Adults parameter is required and must be a valid integer");
+            parameters.Children = Utils.ParseIntParameter(req.Query["children"]) ?? 0;
+            parameters.Infants = Utils.ParseIntParameter(req.Query["infants"]) ?? 0;
+            parameters.MaxPrice = Utils.ParseIntParameter(req.Query["maxPrice"]);
+            parameters.MaxResults = Utils.ParseIntParameter(req.Query["max"]) ?? 250;
+            parameters.NonStop = Utils.ParseBoolParameter(req.Query["nonStop"]) ?? false;
+            parameters.SortBy = req.Query["sortBy"];
+            parameters.SortOrder = req.Query["sortOrder"];
 
-            // Validate the parameters
-            var validationResults = new List<ValidationResult>();
-            var validationContext = new ValidationContext(parameters);
+            var (response, errors) = await _mediator.Send(new GetBasicFlightSearchQuery(parameters), cancellationToken);
+            
 
-            if (!Validator.TryValidateObject(parameters, validationContext, validationResults, true))
+            if (errors.Any())
             {
-                var errors = validationResults
-                    .GroupBy(vr => string.Join(", ", vr.MemberNames))
-                    .ToDictionary(
-                        g => string.IsNullOrEmpty(g.Key) ? "General" : g.Key,
-                        g => g.Select(vr => vr.ErrorMessage).ToArray()
-                    );
-
                 return new BadRequestObjectResult(new
                 {
                     Message = "Validation failed",
@@ -165,8 +156,7 @@ public class FlightSearch
             
             try
             {
-                var result = await _flightProvider.SearchFlightsAsync(parameters, cancellationToken);
-                return new OkObjectResult(result);
+                return new OkObjectResult(response);
             }
             catch (AmadeusApiException ex)
             {
@@ -186,23 +176,4 @@ public class FlightSearch
             return new StatusCodeResult(StatusCodes.Status500InternalServerError);
         }
     }
-
-    // Helper methods for cleaner parsing
-    private static List<string> ParseCommaSeparatedList(string value)
-    {
-        return string.IsNullOrEmpty(value)
-            ? new List<string>()
-            : value.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList();
-    }
-
-    private static int? ParseIntParameter(string value)
-    {
-        return int.TryParse(value, out var result) ? result : null;
-    }
-
-    private static bool? ParseBoolParameter(string value)
-    {
-        return bool.TryParse(value, out var result) ? result : null;
-    }
-
 }
