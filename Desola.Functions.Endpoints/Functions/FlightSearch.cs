@@ -8,9 +8,7 @@ using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using System.Net;
 using DesolaDomain.Entities.AmadeusFields.Basic;
-using DesolaDomain.Interfaces;
 using MediatR;
-using System.ComponentModel.DataAnnotations;
 using Desola.Common;
 using Desola.Common.Exceptions;
 using DesolaDomain.Entities.FlightSearch;
@@ -23,13 +21,10 @@ public class FlightSearch
     private readonly ILogger<FlightSearch> _logger;
     private readonly IMediator _mediator;
 
-    private readonly IFlightProvider _flightProvider;
-
-    public FlightSearch(ILogger<FlightSearch> logger, IMediator mediator, IFlightProvider flightProvider)
+    public FlightSearch(ILogger<FlightSearch> logger, IMediator mediator )
     {
         _logger = logger;
         _mediator = mediator;
-        _flightProvider = flightProvider;
     }
 
     [Function("FlightSearch")]
@@ -144,6 +139,8 @@ public class FlightSearch
             parameters.MaxPrice = Utils.ParseIntParameter(req.Query["maxPrice"]);
             parameters.MaxResults = Utils.ParseIntParameter(req.Query["max"]) ?? 250;
             parameters.NonStop = Utils.ParseBoolParameter(req.Query["nonStop"]) ?? false;
+            parameters.SortBy = req.Query["sortBy"];
+            parameters.SortOrder = req.Query["sortOrder"];
 
             var (response, errors) = await _mediator.Send(new GetBasicFlightSearchQuery(parameters), cancellationToken);
             

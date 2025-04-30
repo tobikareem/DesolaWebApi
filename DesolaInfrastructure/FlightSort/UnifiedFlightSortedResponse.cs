@@ -11,6 +11,7 @@ public class UnifiedFlightSortedResponse
             return;
         }
 
+        sortBy = string.IsNullOrEmpty(sortBy) ? "price" : sortBy;
 
         var isAscending = string.IsNullOrWhiteSpace(sortOrder) || string.Equals(sortOrder, "asc", StringComparison.OrdinalIgnoreCase);
 

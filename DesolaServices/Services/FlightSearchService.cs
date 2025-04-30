@@ -308,23 +308,6 @@ internal class FlightSearchService : IFlightSearchService
 
     }
 
-    private Uri BuildBasicFlightSearchUri(FlightSearchBasicRequest criteria)
-    {
-        var builder = new UriBuilder(_configuration["AmadeusApi_BaseUrl"] + "/v2/shopping/flight-offers");
-        var query = HttpUtility.ParseQueryString(string.Empty);
-        query["originLocationCode"] = criteria.Origin;
-        query["destinationLocationCode"] = criteria.Destination;
-        query["departureDate"] = criteria.DepartureDate.ToString("yyyy-MM-dd");
-        if (criteria.ReturnDate.HasValue)
-        {
-            query["returnDate"] = criteria.ReturnDate.Value.ToString("yyyy-MM-dd");
-        }
-        query["adults"] = criteria.Adults.ToString();
-        query["max"] = criteria.MaxResults.ToString();
-        builder.Query = query.ToString() ?? string.Empty;
-        return builder.Uri;
-    }
-
     private Uri BuildSkyScannerFlightSearchUri(SkyScannerFlightRequest criteria)
     {
 

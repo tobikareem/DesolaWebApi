@@ -57,6 +57,7 @@ public class UnifiedSegment
     public string AircraftType { get; set; }
     public string CabinClass { get; set; }
     public BaggageAllowance BaggageAllowance { get; set; }
+    public string AirlineLogo { get; set; }
 }
 
 public class UnifiedLocation
