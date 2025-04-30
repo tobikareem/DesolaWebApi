@@ -6,7 +6,7 @@ public interface IAirlineRepository
 {
     Task<List<Airline>> GetAllAsync();
 
-    Task<IEnumerable<Airline>> GetByCountryAsync(string countryCode);
+    Task<IEnumerable<Airline>> GetByCountryAsync(string country = "us");
 
     Task<Airline> GetByCodeAsync(string iataCode);
 }

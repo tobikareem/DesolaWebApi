@@ -8,6 +8,7 @@ public class CacheService : ICacheService
 {
     private readonly IMemoryCache _memoryCache;
     private readonly ILogger _logger;
+    private readonly object _lock = new object();
     public CacheService(IMemoryCache cache, ILogger<CacheService> logger)
     {
         _memoryCache = cache;
@@ -15,13 +16,16 @@ public class CacheService : ICacheService
     }
     public void Add<T>(string key, T item, TimeSpan duration)
     {
-        _memoryCache.Set(key, item, new MemoryCacheEntryOptions
+        lock (_lock)
         {
-            AbsoluteExpirationRelativeToNow = duration
-        });
+            _memoryCache.Set(key, item, new MemoryCacheEntryOptions
+            {
+                AbsoluteExpirationRelativeToNow = duration
+            });
+        }
     }
 
-    public T? GetItem<T>(string key)
+    public T GetItem<T>(string key)
     {
         return _memoryCache.Get<T>(key);
     }

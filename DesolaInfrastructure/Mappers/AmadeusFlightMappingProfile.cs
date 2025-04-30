@@ -1,4 +1,5 @@
-﻿using amadeus.resources;
+﻿using System.Diagnostics;
+using amadeus.resources;
 using AutoMapper;
 using DesolaDomain.Entities.FlightSearch;
 using BaggageAllowance = DesolaDomain.Entities.FlightSearch.BaggageAllowance;
@@ -18,6 +19,7 @@ public class AmadeusFlightMappingProfile : Profile
         CreateMap<FlightOffer, UnifiedFlightOffer>()
             .ForMember(dest => dest.Id, opt => opt.MapFrom(src => src.id))
             .ForMember(dest => dest.Provider, opt => opt.MapFrom(src => "Amadeus"))
+            .ForMember(dest => dest.FlightSource, opt => opt.MapFrom(src => src.source))
             .ForMember(dest => dest.TotalPrice, opt => opt.MapFrom(src => decimal.Parse(src.price.total)))
             .ForMember(dest => dest.FormattedPrice, opt => opt.MapFrom(src => $"{src.price.currency} {src.price.total}"))
             .ForMember(dest => dest.Itineraries, opt => opt.MapFrom(src => MapItineraries(src.itineraries)))
@@ -25,8 +27,9 @@ public class AmadeusFlightMappingProfile : Profile
             .ForMember(dest => dest.IsRefundable, opt => opt.MapFrom(src => src.pricingOptions.refundableFare))
             .ForMember(dest => dest.LastTicketingDate, opt => opt.MapFrom(src =>
                DateTime.Parse(src.lastTicketingDate)))
-            .ForMember(dest => dest.ValidatingCarrier, opt => opt.MapFrom(src =>
-                src.validatingAirlineCodes != null && src.validatingAirlineCodes.Any() ? src.validatingAirlineCodes[0] : null))
+            
+            .ForMember(dest => dest.ValidatingCarrier, opt => opt.MapFrom((src, dest, _, context) => GetAirlineName<FlightOffer>(src, context, "ValidatingCarrier")))
+            
             .ForMember(dest => dest.AvailableSeats, opt => opt.MapFrom(src => src.numberOfBookableSeats))
             .ForMember(dest => dest.FareConditions, opt => opt.MapFrom(src => ExtractFareConditions(src)));
 
@@ -36,8 +39,10 @@ public class AmadeusFlightMappingProfile : Profile
             .ForMember(dest => dest.Arrival, opt => opt.MapFrom(src => src.arrival))
             .ForMember(dest => dest.Duration, opt => opt.MapFrom(src => ParseDuration(src.duration)))
             .ForMember(dest => dest.FormattedDuration, opt => opt.MapFrom(src => FormatDuration(ParseDuration(src.duration))))
-            .ForMember(dest => dest.MarketingAirline, opt => opt.MapFrom(src => src.carrierCode))
-            .ForMember(dest => dest.OperatingAirline, opt => opt.MapFrom(src => src.operating.carrierCode ?? src.carrierCode))
+            
+            .ForMember(dest => dest.MarketingAirline, opt => opt.MapFrom((src, dest, _, context) => GetAirlineName<Segment>(src, context, "MarketingAirline")))
+            .ForMember(dest => dest.OperatingAirline, opt => opt.MapFrom((src, dest, _, context) => GetAirlineName<Segment>(src, context, "OperatingAirline")))
+
             .ForMember(dest => dest.FlightNumber, opt => opt.MapFrom(src => src.number))
             .ForMember(dest => dest.AircraftType, opt => opt.MapFrom(src => src.aircraft.code))
             .ForMember(dest => dest.CabinClass, opt => opt.MapFrom((src, dest, _, context) =>
@@ -50,11 +55,40 @@ public class AmadeusFlightMappingProfile : Profile
             .ForMember(dest => dest.FormattedDateTime, opt => opt.MapFrom(src => FormatDateTime(DateTime.Parse(src.at))));
     }
 
+
+    private static string GetAirlineName<T>(T flightOffer, ResolutionContext context, string field)
+    {
+        // Use pattern matching on the flightOffer instance
+        var airlineCode = flightOffer switch
+        {
+            FlightOffer fo => fo.validatingAirlineCodes?.FirstOrDefault() ?? string.Empty,
+            Segment segment => field switch
+            {
+                "MarketingAirline" => segment.carrierCode,
+                "OperatingAirline" => segment.operating?.carrierCode ?? segment.carrierCode,
+                _ => string.Empty
+            },
+            _ => string.Empty
+        };
+
+        // Retrieve the list of airlines from the context and lookup by IATA code
+        if (!context.Items.ContainsKey("Airlines"))
+        {
+            throw new InvalidOperationException("The 'Airlines' key is missing from the resolution context items.");
+        }
+
+        var airlines = context.Items["Airlines"] as List<DesolaDomain.Model.Airline>;
+
+        var airlineName = airlines?.FirstOrDefault(a => a.IataCode == airlineCode)?.Name ?? "Unknown Airline";
+
+        return $"{airlineCode} - {airlineName}";
+    }
+
     private List<UnifiedItinerary> MapItineraries(IReadOnlyList<Itineraries> itineraries)
     {
         var result = new List<UnifiedItinerary>();
 
-        for (int i = 0; i < itineraries.Count; i++)
+        for (var i = 0; i < itineraries.Count; i++)
         {
             var itinerary = itineraries[i];
             var direction = i == 0 ? "Outbound" : "Return";
@@ -72,31 +106,22 @@ public class AmadeusFlightMappingProfile : Profile
         return result;
     }
 
-    private List<UnifiedSegment> MapSegments(List<Segment> segments)
+    private IEnumerable<UnifiedSegment> MapSegments(IEnumerable<Segment> segments)
     {
-        var result = new List<UnifiedSegment>();
-
-        foreach (var segment in segments)
+        return segments.Select(segment => new UnifiedSegment
         {
-            var unifiedSegment = new UnifiedSegment
-            {
-                Id = segment.id,
-                Departure = MapLocation(segment.departure),
-                Arrival = MapLocation(segment.arrival),
-                Duration = ParseDuration(segment.duration),
-                FormattedDuration = FormatDuration(ParseDuration(segment.duration)),
-                MarketingAirline = segment.carrierCode,
-                OperatingAirline = segment.operating?.carrierCode ?? segment.carrierCode,
-                FlightNumber = segment.number,
-                AircraftType = segment.aircraft?.code,
-                // CabinClass will be set elsewhere with context information
-                BaggageAllowance = new BaggageAllowance() // Default empty, will be populated later
-            };
-
-            result.Add(unifiedSegment);
-        }
-
-        return result;
+            Id = segment.id,
+            Departure = MapLocation(segment.departure),
+            Arrival = MapLocation(segment.arrival),
+            Duration = ParseDuration(segment.duration),
+            FormattedDuration = FormatDuration(ParseDuration(segment.duration)),
+            MarketingAirline = segment.carrierCode,
+            OperatingAirline = segment.operating?.carrierCode ?? segment.carrierCode,
+            FlightNumber = segment.number,
+            AircraftType = segment.aircraft?.code,
+            // CabinClass will be set elsewhere with context information
+            BaggageAllowance = new BaggageAllowance() // Default empty, will be populated later
+        });
     }
 
     private UnifiedLocation MapLocation(FlightEndPoint endPoint)

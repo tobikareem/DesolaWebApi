@@ -21,12 +21,12 @@ public class AirportRepository : IAirportRepository
 
     public async Task<IEnumerable<Airport>> SearchAirportsAsync(string query)
     {
-        var airports = await GetAirportsAsync();
-
         if (string.IsNullOrWhiteSpace(query))
             return new List<Airport>();
 
+
         query = query.Trim().ToLowerInvariant();
+        var airports = await GetAirportsAsync();
 
         return airports
             .Where(a =>

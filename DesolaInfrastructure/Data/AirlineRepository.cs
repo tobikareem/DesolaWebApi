@@ -48,22 +48,16 @@ public class AirlineRepository : IAirlineRepository
             throw new InvalidOperationException("Airline file not found");
         }
 
-        var airlineFile = await _blobStorageRepository.DownloadBlobAsStringAsync(_fileName, _containerName);
-
-        var airlineList = JsonSerializer.Deserialize<List<Airline>>(airlineFile);
+        var airlineList = await ReadAirlineAsync().ToListAsync();
 
         _cacheService.Add(CacheEntry.AllAirlines, airlineList, TimeSpan.FromDays(30));
 
-        return airlineList ?? throw new ArgumentNullException(nameof(Airline), "Airline list is null");
+        return airlineList;
 
     }
 
-    public async Task<IEnumerable<Airline>> GetByCountryAsync(string countryCode)
+    public async Task<IEnumerable<Airline>> GetByCountryAsync(string country)
     {
-        if (!string.Equals(countryCode, "us", StringComparison.OrdinalIgnoreCase))
-        {
-            return Enumerable.Empty<Airline>();
-        }
 
         var allAirLines = await GetAllAsync();
 
@@ -76,6 +70,13 @@ public class AirlineRepository : IAirlineRepository
         if (string.IsNullOrWhiteSpace(iataCode))
         {
             throw new ArgumentException("IATA code must be provided", nameof(iataCode));
+        }
+
+        var airlineCache = _cacheService.GetItem<IEnumerable<Airline>>(CacheEntry.AllAirlines);
+
+        if (airlineCache != null)
+        {
+            return airlineCache.FirstOrDefault(airline => string.Equals(airline.IataCode, iataCode, StringComparison.OrdinalIgnoreCase));
         }
 
         return await ReadAirlineAsync()

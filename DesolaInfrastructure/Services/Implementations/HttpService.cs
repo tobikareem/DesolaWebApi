@@ -35,24 +35,20 @@ public class HttpService : IHttpService
 
         var content = await response.Content.ReadAsStringAsync(cancellationToken);
 
-        if (!response.IsSuccessStatusCode)
+        if (response.IsSuccessStatusCode) return content;
+
+        try
         {
-
-            try
+            var amadeusError = JsonSerializer.Deserialize<AmadeusErrorResponse>(content, new JsonSerializerOptions
             {
-                var amadeusError = JsonSerializer.Deserialize<AmadeusErrorResponse>(content, new JsonSerializerOptions
-                {
-                    PropertyNameCaseInsensitive = true
-                });
-                throw new AmadeusApiException(response.StatusCode, amadeusError ?? new AmadeusErrorResponse());
-            }
-            catch (JsonException)
-            {
-                throw new HttpRequestException($"Request failed with status code {response.StatusCode}: {content}");
-            }
+                PropertyNameCaseInsensitive = true
+            });
+            throw new AmadeusApiException(response.StatusCode, amadeusError ?? new AmadeusErrorResponse());
         }
-
-        return content;
+        catch (JsonException)
+        {
+            throw new HttpRequestException($"Request failed with status code {response.StatusCode}: {content}");
+        }
     }
 
 }

@@ -69,6 +69,12 @@ public class FlightSearchParameters : IValidatableObject
     [JsonPropertyName("excludedAirlineCodes")]
     public List<string> ExcludedAirlineCodes { get; set; } = new();
 
+    [JsonPropertyName("sortBy")]
+    public string SortBy { get; set; }
+
+    [JsonPropertyName("sortOrder")]
+    public string SortOrder { get; set; }
+
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {
         if (DepartureDate.Date < DateTime.Today)
