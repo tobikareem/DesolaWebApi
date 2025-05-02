@@ -4,7 +4,7 @@ using DesolaDomain.Model;
 using Microsoft.Extensions.Logging;
 using FlightOffer = amadeus.resources.FlightOffer;
 
-namespace DesolaInfrastructure.External.Amadeus;
+namespace DesolaInfrastructure.External.Providers.Amadeus;
 
 public class AmadeusService:IAmadeusService
 {

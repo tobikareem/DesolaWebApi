@@ -56,15 +56,6 @@ public class AirlineRepository : IAirlineRepository
 
     }
 
-    public async Task<IEnumerable<Airline>> GetByCountryAsync(string country)
-    {
-
-        var allAirLines = await GetAllAsync();
-
-        return allAirLines.Where(x => _americanAirlines.Contains(x.Name, StringComparison.OrdinalIgnoreCase))
-            .ToList();
-    }
-
     public async Task<Airline> GetByCodeAsync(string iataCode)
     {
         if (string.IsNullOrWhiteSpace(iataCode))

@@ -5,7 +5,14 @@
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
 
-  <ItemGroup>
+	<ItemGroup>
+		<PackageReference Include="docfx.console" Version="2.41.0">
+			<ExcludeAssets>build</ExcludeAssets>
+		</PackageReference>
+	</ItemGroup>
+
+
+	<ItemGroup>
     <PackageReference Include="amadeus-dotnet" Version="2.0.0" />
     <PackageReference Include="CaptainOath.DataStore" Version="2.0.5" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="9.0.4" />
@@ -19,11 +26,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\DesolaDomain\DesolaDomain.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="External\Kiwi\" />
-    <Folder Include="Services\Identity\Authentication\" />
   </ItemGroup>
 
 </Project>

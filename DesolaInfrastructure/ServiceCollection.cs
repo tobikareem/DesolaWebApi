@@ -8,12 +8,11 @@ using DesolaDomain.Entities.User;
 using DesolaDomain.Interfaces;
 using DesolaDomain.Settings;
 using DesolaInfrastructure.Data;
-using DesolaInfrastructure.External;
-using DesolaInfrastructure.External.Amadeus;
 using DesolaInfrastructure.Services.Implementations;
 using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
-using DesolaInfrastructure.External.SkyScanner;
+using DesolaInfrastructure.External.Providers.Amadeus;
+using DesolaInfrastructure.External.Providers.SkyScanner;
 
 namespace DesolaInfrastructure;
 

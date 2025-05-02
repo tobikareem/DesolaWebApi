@@ -1,6 +1,6 @@
-﻿using System.Diagnostics;
-using amadeus.resources;
+﻿using amadeus.resources;
 using AutoMapper;
+using DesolaDomain.Entities.AmadeusFields.Response;
 using DesolaDomain.Entities.FlightSearch;
 using BaggageAllowance = DesolaDomain.Entities.FlightSearch.BaggageAllowance;
 
@@ -11,6 +11,11 @@ public class AmadeusFlightMappingProfile : Profile
 
     public AmadeusFlightMappingProfile()
     {
+        CreateMap<AmadeusFlightOffersResponse, UnifiedFlightSearchResponse>()
+            .ForMember(dest => dest.Offers, opt => opt.MapFrom(src => src.Data))
+            .ForMember(dest => dest.TotalResults, opt => opt.MapFrom(src => src.Data.Count))
+            .ForMember(dest => dest.CurrencyCode, opt => opt.MapFrom(src => src.Data.FirstOrDefault().price.currency ?? "USD"));
+
         CreateMap<List<FlightOffer>, UnifiedFlightSearchResponse>()
             .ForMember(dest => dest.TotalResults, opt => opt.MapFrom(src => src.Count))
             .ForMember(dest => dest.CurrencyCode, opt => opt.MapFrom(src => src.FirstOrDefault().price.currency ?? "USD"))

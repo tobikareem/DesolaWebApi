@@ -5,7 +5,14 @@
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
 
-  <ItemGroup>
+	<ItemGroup>
+		<PackageReference Include="docfx.console" Version="2.41.0">
+			<ExcludeAssets>build</ExcludeAssets>
+		</PackageReference>
+	</ItemGroup>
+
+
+	<ItemGroup>
     <PackageReference Include="AutoMapper" Version="14.0.0" />
     <PackageReference Include="MediatR" Version="12.5.0" />
     <PackageReference Include="amadeus-dotnet" Version="2.0.0" />
