@@ -31,6 +31,9 @@ public class UnifiedFlightOffer
     public bool IsRefundable { get; set; }
     public DateTime? LastTicketingDate { get; set; }
     public string ValidatingCarrier { get; set; }
+    public string ValidatingCarrierAirlineName { get; set; }
+    public string OperatingCarrierAirlineCode { get; set; }
+    public string OperatingCarrierAirlineName { get; set; }
     public int AvailableSeats { get; set; }
     public List<string> FareConditions { get; set; } = new();
 }
@@ -63,9 +66,12 @@ public class UnifiedSegment
 public class UnifiedLocation
 {
     public string AirportCode { get; set; }
+    public string AirportName { get; set; }
     public string Terminal { get; set; }
     public string CityCode { get; set; }
-    public string CountryCode { get; set; }
+
+    public string CityName { get; set; }
+    public string Country { get; set; }
     public DateTime DateTime { get; set; }
     public string FormattedDateTime { get; set; } // "May 2, 10:00 AM"
 }

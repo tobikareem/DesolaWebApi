@@ -25,4 +25,8 @@
     <ProjectReference Include="..\DesolaDomain\DesolaDomain.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Services\TableStorage\" />
+  </ItemGroup>
+
 </Project>

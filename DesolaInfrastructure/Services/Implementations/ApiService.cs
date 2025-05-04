@@ -228,6 +228,17 @@ public class ApiService : IApiService
         }
         catch (System.Text.Json.JsonException) { /* Not a SkyScanner error */ }
 
+         try
+        {
+            var googleError = JsonSerializer.Deserialize<GoogleErrorResponse>(errorContent);
+
+            if(googleError?.Errors.Count > 0)
+            {
+                throw new GoogleApiException(statusCode, googleError);
+            }
+        }
+        catch (System.Text.Json.JsonException) { /* Not a Google error */ }
+
         throw new ApiException($"API request failed with status code {statusCode}: {errorContent}");
     }
 

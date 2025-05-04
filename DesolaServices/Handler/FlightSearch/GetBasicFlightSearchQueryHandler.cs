@@ -40,8 +40,9 @@ public class GetBasicFlightSearchQueryHandler : IRequestHandler<GetBasicFlightSe
 
         var providersToCall = new[]
         {
-            _appSettings.ExternalApi.Amadeus.ProviderName,
-            _appSettings.ExternalApi.RapidApi.SkyScannerProviderName
+              _appSettings.ExternalApi.Amadeus.ProviderName,
+             _appSettings.ExternalApi.RapidApi.SkyScannerProviderName,
+            // _appSettings.ExternalApi.RapidApi.GoogleProviderName
         };
 
         var tasks = providersToCall.Select(providerName =>
@@ -68,12 +69,45 @@ public class GetBasicFlightSearchQueryHandler : IRequestHandler<GetBasicFlightSe
 
         LogPerformanceStats();
 
-        var successfulResponses = results.Where(r => r != null).ToList();
+        var successfulResponses = results.Where(r =>
+        {
+            PostProcessUnifiedResponse(r, request.SearchParameters);
+            return r != null;
+        }).ToList();
 
         var unifiedResponse = FlightResultAggregator.CombineResults(successfulResponses, request.SearchParameters.SortBy, request.SearchParameters.SortOrder);
-        
 
         return new ValueTuple<UnifiedFlightSearchResponse, Dictionary<string, string[]>>(unifiedResponse, errors);
+    }
+
+    private static void PostProcessUnifiedResponse(UnifiedFlightSearchResponse response, FlightSearchParameters parameters)
+    {
+        response.Origin = parameters.Origin;
+        response.Destination = parameters.Destination;
+        response.DepartureDate = parameters.DepartureDate;
+        response.ReturnDate = parameters.ReturnDate;
+
+        // Ensure we have some basic offer properties set
+        if (response.Offers == null) return;
+
+        foreach (var offer in response.Offers)
+        {
+            // offer.Provider ??= response.;
+            // offer.FlightSource ??= ProviderName;
+
+            // Ensure baggage allowance is set
+            offer.BaggageAllowance ??= new BaggageAllowance
+            {
+                CheckedBags = 0,
+                Description = "No checked baggage information available"
+            };
+
+            // Ensure fare conditions are set
+            if (offer.FareConditions == null || !offer.FareConditions.Any())
+            {
+                offer.FareConditions = new List<string> { "Fare conditions not specified" };
+            }
+        }
     }
 
     private static Dictionary<string, string[]> ValidateRequest(FlightSearchParameters parameters)

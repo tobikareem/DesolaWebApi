@@ -1,4 +1,5 @@
 ﻿using DesolaDomain.Entities.Pages;
+using DesolaDomain.Interfaces;
 using DesolaServices.Commands.Requests;
 using DesolaServices.Interfaces;
 using MediatR;

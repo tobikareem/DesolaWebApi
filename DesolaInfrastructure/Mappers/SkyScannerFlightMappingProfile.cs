@@ -1,6 +1,5 @@
 ﻿using AutoMapper;
 using DesolaDomain.Aggregates;
-using DesolaDomain.Entities.AmadeusFields;
 using DesolaDomain.Entities.AmadeusFields.Basic;
 using DesolaDomain.Entities.FlightSearch;
 using DesolaDomain.Entities.SkyScannerFields;
@@ -49,7 +48,7 @@ public class SkyScannerFlightMappingProfile : Profile
             .ForMember(dest => dest.TotalResults, opt => opt.MapFrom(src => src.Data.Itineraries.Count))
             .ForMember(dest => dest.CurrencyCode, opt => opt.MapFrom(src => "USD"))
             .ForMember(dest => dest.Offers, opt => opt.MapFrom((src, dest, _, context) =>
-                MapOffers(src, context.Items.ContainsKey("AirlineLogos") ? context.Items["AirlineLogos"] as Dictionary<string, string> : null)))
+                MapOffers(src, context.Items.ContainsKey("AirlineLogos") ? context.Items["AirlineLogos"] as Dictionary<string, string> : null, context.Items.ContainsKey("Parameters") ? ((FlightSearchParameters)context.Items["Parameters"]) : null)))
             .ForMember(dest => dest.Origin, opt => opt.MapFrom((src, _, __, context) =>
                 context.Items.ContainsKey("Parameters") ? ((FlightSearchParameters)context.Items["Parameters"]).Origin : null))
             .ForMember(dest => dest.Destination, opt => opt.MapFrom((src, _, __, context) =>
@@ -83,7 +82,7 @@ public class SkyScannerFlightMappingProfile : Profile
         return TimeSpan.Zero;
     }
 
-    private IEnumerable<UnifiedFlightOffer> MapOffers(SkyScannerFlightOffer source, Dictionary<string, string> airlineLogos)
+    private IEnumerable<UnifiedFlightOffer> MapOffers(SkyScannerFlightOffer source, Dictionary<string, string> airlineLogos, FlightSearchParameters flightSearchParameters)
     {
         var offers = new List<UnifiedFlightOffer>();
 
@@ -105,7 +104,7 @@ public class SkyScannerFlightMappingProfile : Profile
                 FlightSource = "SkyScanner",
                 TotalPrice = itinerary.Price.Raw,
                 FormattedPrice = $"USD {itinerary.Price.Raw}",
-                Itineraries = BuildItineraries(departureLeg, returnLeg, airlineLogos),
+                Itineraries = BuildItineraries(departureLeg, returnLeg, airlineLogos, flightSearchParameters),
                 IsRefundable = false,
                 BaggageAllowance = new BaggageAllowance
                 {
@@ -116,31 +115,34 @@ public class SkyScannerFlightMappingProfile : Profile
                 FareConditions = new List<string> { "Fare conditions not specified" },
                 AvailableSeats = 0,
                 LastTicketingDate = null,
-                ValidatingCarrier = departureLeg?.Segments.FirstOrDefault()?.MarketingCarrier?.AlternateId
+                ValidatingCarrier = departureLeg?.Segments.FirstOrDefault()?.MarketingCarrier?.AlternateId,
+                ValidatingCarrierAirlineName = departureLeg?.Segments.FirstOrDefault()?.MarketingCarrier?.Name,
+                OperatingCarrierAirlineCode = departureLeg?.Segments.FirstOrDefault()?.OperatingCarrier?.AlternateId,
+                OperatingCarrierAirlineName = departureLeg?.Segments.FirstOrDefault()?.OperatingCarrier?.Name
             });
         }
 
         return offers;
     }
 
-    private IEnumerable<UnifiedItinerary> BuildItineraries(SkyScannerLeg departureLeg, SkyScannerLeg returnLeg, Dictionary<string, string> airlineLogos)
+    private IEnumerable<UnifiedItinerary> BuildItineraries(SkyScannerLeg departureLeg, SkyScannerLeg returnLeg, Dictionary<string, string> airlineLogos, FlightSearchParameters flightSearchParameters)
     {
         var itineraries = new List<UnifiedItinerary>();
 
         if (departureLeg != null)
         {
-            itineraries.Add(BuildItinerary("Outbound", departureLeg, airlineLogos));
+            itineraries.Add(BuildItinerary("Outbound", departureLeg, airlineLogos, flightSearchParameters));
         }
 
         if (returnLeg != null)
         {
-            itineraries.Add(BuildItinerary("Return", returnLeg, airlineLogos));
+            itineraries.Add(BuildItinerary("Return", returnLeg, airlineLogos, flightSearchParameters));
         }
 
         return itineraries;
     }
 
-    private UnifiedItinerary BuildItinerary(string direction, SkyScannerLeg leg, Dictionary<string, string> airlineLogos)
+    private static UnifiedItinerary BuildItinerary(string direction, SkyScannerLeg leg, IReadOnlyDictionary<string, string> airlineLogos, FlightSearchParameters flightSearchParameters)
     {
         return new UnifiedItinerary
         {
@@ -148,11 +150,11 @@ public class SkyScannerFlightMappingProfile : Profile
             Duration = TimeSpan.FromMinutes(leg.DurationInMinutes),
             FormattedDuration = TimeSpan.FromMinutes(leg.DurationInMinutes).ToString(@"hh\:mm"),
             Stops = leg.StopCount,
-            Segments = leg.Segments.Select(s => BuildSegment(s, airlineLogos)).ToList()
+            Segments = leg.Segments.Select(s => BuildSegment(s, airlineLogos, flightSearchParameters)).ToList()
         };
     }
 
-    private static UnifiedSegment BuildSegment(SkySegment segment, IReadOnlyDictionary<string, string> airlineLogos)
+    private static UnifiedSegment BuildSegment(SkySegment segment, IReadOnlyDictionary<string, string> airlineLogos, FlightSearchParameters flightSearchParameters)
     {
         var airlineCode = segment.MarketingCarrier?.AlternateId;
         string airlineLogo = null;
@@ -168,18 +170,21 @@ public class SkyScannerFlightMappingProfile : Profile
             Departure = new UnifiedLocation
             {
                 AirportCode = segment.Origin.DisplayCode,
+                AirportName = segment.Origin.Name,
                 Terminal = null, // SkyScanner doesn't provide terminal information
                 CityCode = segment.Origin.Parent?.DisplayCode, // Add city code from parent object
-                CountryCode = segment.Origin.Country, // Add country code
+                CityName = segment.Origin.Parent?.Name, // Add city name from parent object
+                Country = segment.Origin.Country, // Add country code
                 DateTime = segment.Departure,
                 FormattedDateTime = FormatDateTime(segment.Departure)
             },
             Arrival = new UnifiedLocation
             {
                 AirportCode = segment.Destination.DisplayCode,
+                AirportName = segment.Destination.Name,
                 Terminal = null, // SkyScanner doesn't provide terminal information
                 CityCode = segment.Destination.Parent?.DisplayCode, // Add city code from parent object
-                CountryCode = segment.Destination.Country, // Add country code
+                Country = segment.Destination.Country, // Add country code
                 DateTime = segment.Arrival,
                 FormattedDateTime = FormatDateTime(segment.Arrival)
             },
@@ -189,7 +194,7 @@ public class SkyScannerFlightMappingProfile : Profile
             OperatingAirline = segment.OperatingCarrier?.Name,
             FlightNumber = $"{segment.MarketingCarrier?.AlternateId} {segment.FlightNumber}",
             AircraftType = "Unknown Aircraft", // Better default than using airline name
-            CabinClass = "Economy", // Default as SkyScanner doesn't always provide this
+            CabinClass = flightSearchParameters.CabinClass, // Default as SkyScanner doesn't always provide this
             AirlineLogo = airlineLogo ?? segment.MarketingCarrier?.LogoUrl, // Use provided logo or fallback to airline's logo
             BaggageAllowance = new BaggageAllowance
             {
@@ -205,31 +210,23 @@ public class SkyScannerFlightMappingProfile : Profile
     {
         var airlines = new Dictionary<string, string>();
 
-        foreach (var itinerary in response.Data.Itineraries)
+        foreach (var leg in response.Data.Itineraries.SelectMany(itinerary => itinerary.Legs))
         {
-            foreach (var leg in itinerary.Legs)
+            foreach (var carrier in leg.Carriers.Marketing.Where(carrier => !string.IsNullOrEmpty(carrier.AlternateId) && !airlines.ContainsKey(carrier.AlternateId)))
             {
-                foreach (var carrier in leg.Carriers.Marketing)
+                airlines[carrier.AlternateId] = carrier.Name;
+            }
+
+            foreach (var segment in leg.Segments)
+            {
+                if (segment.MarketingCarrier != null && !string.IsNullOrEmpty(segment.MarketingCarrier.AlternateId) && !airlines.ContainsKey(segment.MarketingCarrier.AlternateId))
                 {
-                    if (!string.IsNullOrEmpty(carrier.AlternateId) && !airlines.ContainsKey(carrier.AlternateId))
-                    {
-                        airlines[carrier.AlternateId] = carrier.Name;
-                    }
+                    airlines[segment.MarketingCarrier.AlternateId] = segment.MarketingCarrier.Name;
                 }
 
-                foreach (var segment in leg.Segments)
+                if (segment.OperatingCarrier != null && !string.IsNullOrEmpty(segment.OperatingCarrier.AlternateId) && !airlines.ContainsKey(segment.OperatingCarrier.AlternateId))
                 {
-                    if (segment.MarketingCarrier != null && !string.IsNullOrEmpty(segment.MarketingCarrier.AlternateId)
-                        && !airlines.ContainsKey(segment.MarketingCarrier.AlternateId))
-                    {
-                        airlines[segment.MarketingCarrier.AlternateId] = segment.MarketingCarrier.Name;
-                    }
-
-                    if (segment.OperatingCarrier != null && !string.IsNullOrEmpty(segment.OperatingCarrier.AlternateId)
-                        && !airlines.ContainsKey(segment.OperatingCarrier.AlternateId))
-                    {
-                        airlines[segment.OperatingCarrier.AlternateId] = segment.OperatingCarrier.Name;
-                    }
+                    airlines[segment.OperatingCarrier.AlternateId] = segment.OperatingCarrier.Name;
                 }
             }
         }
@@ -241,31 +238,28 @@ public class SkyScannerFlightMappingProfile : Profile
     {
         var airports = new Dictionary<string, string>();
 
-        foreach (var itinerary in response.Data.Itineraries)
+        foreach (var leg in response.Data.Itineraries.SelectMany(itinerary => itinerary.Legs))
         {
-            foreach (var leg in itinerary.Legs)
+            if (!string.IsNullOrEmpty(leg.Origin.DisplayCode) && !airports.ContainsKey(leg.Origin.DisplayCode))
             {
-                if (!string.IsNullOrEmpty(leg.Origin.DisplayCode) && !airports.ContainsKey(leg.Origin.DisplayCode))
+                airports[leg.Origin.DisplayCode] = leg.Origin.Name;
+            }
+
+            if (!string.IsNullOrEmpty(leg.Destination.DisplayCode) && !airports.ContainsKey(leg.Destination.DisplayCode))
+            {
+                airports[leg.Destination.DisplayCode] = leg.Destination.Name;
+            }
+
+            foreach (var segment in leg.Segments)
+            {
+                if (!string.IsNullOrEmpty(segment.Origin.DisplayCode) && !airports.ContainsKey(segment.Origin.DisplayCode))
                 {
-                    airports[leg.Origin.DisplayCode] = leg.Origin.Name;
+                    airports[segment.Origin.DisplayCode] = segment.Origin.Name;
                 }
 
-                if (!string.IsNullOrEmpty(leg.Destination.DisplayCode) && !airports.ContainsKey(leg.Destination.DisplayCode))
+                if (!string.IsNullOrEmpty(segment.Destination.DisplayCode) && !airports.ContainsKey(segment.Destination.DisplayCode))
                 {
-                    airports[leg.Destination.DisplayCode] = leg.Destination.Name;
-                }
-
-                foreach (var segment in leg.Segments)
-                {
-                    if (!string.IsNullOrEmpty(segment.Origin.DisplayCode) && !airports.ContainsKey(segment.Origin.DisplayCode))
-                    {
-                        airports[segment.Origin.DisplayCode] = segment.Origin.Name;
-                    }
-
-                    if (!string.IsNullOrEmpty(segment.Destination.DisplayCode) && !airports.ContainsKey(segment.Destination.DisplayCode))
-                    {
-                        airports[segment.Destination.DisplayCode] = segment.Destination.Name;
-                    }
+                    airports[segment.Destination.DisplayCode] = segment.Destination.Name;
                 }
             }
         }
@@ -277,57 +271,54 @@ public class SkyScannerFlightMappingProfile : Profile
     {
         var locations = new Dictionary<string, AirportCity>();
 
-        foreach (var itinerary in response.Data.Itineraries)
+        foreach (var leg in response.Data.Itineraries.SelectMany(itinerary => itinerary.Legs))
         {
-            foreach (var leg in itinerary.Legs)
+            if (!string.IsNullOrEmpty(leg.Origin.DisplayCode) && !locations.ContainsKey(leg.Origin.DisplayCode))
             {
-                if (!string.IsNullOrEmpty(leg.Origin.DisplayCode) && !locations.ContainsKey(leg.Origin.DisplayCode))
+                locations[leg.Origin.DisplayCode] = new AirportCity
                 {
-                    locations[leg.Origin.DisplayCode] = new AirportCity
+                    CityCode = leg.Origin.City,
+                    CityName = leg.Origin.City,
+                    CountryCode = leg.Origin.Country,
+                    CountryName = leg.Origin.Country
+                };
+            }
+
+            if (!string.IsNullOrEmpty(leg.Destination.DisplayCode) && !locations.ContainsKey(leg.Destination.DisplayCode))
+            {
+                locations[leg.Destination.DisplayCode] = new AirportCity
+                {
+                    CityCode = leg.Destination.City,
+                    CityName = leg.Destination.City,
+                    CountryCode = leg.Destination.Country,
+                    CountryName = leg.Destination.Country
+                };
+            }
+
+            foreach (var segment in leg.Segments)
+            {
+                if (segment.Origin.Parent != null && !string.IsNullOrEmpty(segment.Origin.DisplayCode) &&
+                    !locations.ContainsKey(segment.Origin.DisplayCode))
+                {
+                    locations[segment.Origin.DisplayCode] = new AirportCity
                     {
-                        CityCode = leg.Origin.City,
-                        CityName = leg.Origin.City,
-                        CountryCode = leg.Origin.Country,
-                        CountryName = leg.Origin.Country
+                        CityCode = segment.Origin.Parent.DisplayCode,
+                        CityName = segment.Origin.Parent.Name,
+                        CountryCode = segment.Origin.Country,
+                        CountryName = segment.Origin.Country
                     };
                 }
 
-                if (!string.IsNullOrEmpty(leg.Destination.DisplayCode) && !locations.ContainsKey(leg.Destination.DisplayCode))
+                if (segment.Destination.Parent != null && !string.IsNullOrEmpty(segment.Destination.DisplayCode) &&
+                    !locations.ContainsKey(segment.Destination.DisplayCode))
                 {
-                    locations[leg.Destination.DisplayCode] = new AirportCity
+                    locations[segment.Destination.DisplayCode] = new AirportCity
                     {
-                        CityCode = leg.Destination.City,
-                        CityName = leg.Destination.City,
-                        CountryCode = leg.Destination.Country,
-                        CountryName = leg.Destination.Country
+                        CityCode = segment.Destination.Parent.DisplayCode,
+                        CityName = segment.Destination.Parent.Name,
+                        CountryCode = segment.Destination.Country,
+                        CountryName = segment.Destination.Country
                     };
-                }
-
-                foreach (var segment in leg.Segments)
-                {
-                    if (segment.Origin.Parent != null && !string.IsNullOrEmpty(segment.Origin.DisplayCode) &&
-                        !locations.ContainsKey(segment.Origin.DisplayCode))
-                    {
-                        locations[segment.Origin.DisplayCode] = new AirportCity
-                        {
-                            CityCode = segment.Origin.Parent.DisplayCode,
-                            CityName = segment.Origin.Parent.Name,
-                            CountryCode = segment.Origin.Country,
-                            CountryName = segment.Origin.Country
-                        };
-                    }
-
-                    if (segment.Destination.Parent != null && !string.IsNullOrEmpty(segment.Destination.DisplayCode) &&
-                        !locations.ContainsKey(segment.Destination.DisplayCode))
-                    {
-                        locations[segment.Destination.DisplayCode] = new AirportCity
-                        {
-                            CityCode = segment.Destination.Parent.DisplayCode,
-                            CityName = segment.Destination.Parent.Name,
-                            CountryCode = segment.Destination.Country,
-                            CountryName = segment.Destination.Country
-                        };
-                    }
                 }
             }
         }

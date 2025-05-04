@@ -48,8 +48,7 @@ public class WebPageContents
                 await response.WriteStringAsync("Invalid request payload.");
                 return response;
             }
-
-
+            
             await _mediator.Send(new InsertWebSectionCommand(section));
 
             response = req.CreateResponse(HttpStatusCode.OK);

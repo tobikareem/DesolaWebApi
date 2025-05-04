@@ -8,6 +8,7 @@ using DesolaDomain.Entities.AmadeusFields.Basic;
 using Microsoft.Extensions.Logging;
 using Desola.Common.Exceptions;
 using DesolaDomain.Entities.AmadeusFields.Response;
+using DesolaInfrastructure.Services.Base;
 
 namespace DesolaInfrastructure.External.Providers.Amadeus;
 
@@ -54,6 +55,9 @@ public class AmadeusFlightProvider : BaseFlightProvider
             var result = await FlightSearchResult<AmadeusFlightOffersResponse>.GetFromMappedApiAsync(amadeusResponse, Mapper, new { Airlines = airlines }, cancellationToken);
 
 
+            // Post-process the results to add any missing information
+            PostProcessUnifiedResponse(result.UnifiedResponse, parameters);
+
             var cacheKey = GenerateCacheKey(parameters);
             SaveToBlobCacheAsync(cacheKey, result.RawResponse, result.UnifiedResponse);
 
@@ -69,6 +73,37 @@ public class AmadeusFlightProvider : BaseFlightProvider
         {
             Logger.LogError(ex, "Error searching for flights with Amadeus provider");
             throw;
+        }
+    }
+
+    private void PostProcessUnifiedResponse(UnifiedFlightSearchResponse response, FlightSearchParameters parameters)
+    {
+        response.Origin = parameters.Origin;
+        response.Destination = parameters.Destination;
+        response.DepartureDate = parameters.DepartureDate;
+        response.ReturnDate = parameters.ReturnDate;
+
+
+        // Ensure we have some basic offer properties set
+        if (response.Offers == null) return;
+        foreach (var offer in response.Offers)
+        {
+            offer.Provider ??= ProviderName;
+
+            offer.FlightSource ??= ProviderName;
+
+            // Ensure baggage allowance is set
+            offer.BaggageAllowance ??= new BaggageAllowance
+            {
+                CheckedBags = 0,
+                Description = "No checked baggage information available"
+            };
+
+            // Ensure fare conditions are set
+            if (offer.FareConditions == null || !offer.FareConditions.Any())
+            {
+                offer.FareConditions = new List<string> { "Fare conditions not specified" };
+            }
         }
     }
 

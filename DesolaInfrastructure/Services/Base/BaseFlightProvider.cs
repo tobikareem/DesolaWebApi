@@ -7,7 +7,7 @@ using Microsoft.Extensions.Logging;
 using System.Text.Json;
 using DesolaInfrastructure.Services.FlightSorting;
 
-namespace DesolaInfrastructure.External.Providers;
+namespace DesolaInfrastructure.Services.Base;
 
 public abstract class BaseFlightProvider : IFlightProvider
 {
@@ -82,6 +82,12 @@ public abstract class BaseFlightProvider : IFlightProvider
 
     protected void SaveToBlobCacheAsync<T>(string cacheKey, T rawResponse, UnifiedFlightSearchResponse unifiedResponse)
     {
+        if(unifiedResponse.TotalResults <= 0)
+        {
+            Logger.LogInformation("No results found for {Provider}. Not saving to blob cache. Cache key: {CacheKey}", ProviderName, cacheKey);
+            return;
+        }
+
         Task.Run(async () =>
         {
             try
@@ -95,7 +101,7 @@ public abstract class BaseFlightProvider : IFlightProvider
                 {
                     WriteIndented = true
                 });
-
+                
                 // Create blob names
                 var rawBlobName = GetBlobName(cacheKey, "Raw");
                 var unifiedBlobName = GetBlobName(cacheKey, "Unified");

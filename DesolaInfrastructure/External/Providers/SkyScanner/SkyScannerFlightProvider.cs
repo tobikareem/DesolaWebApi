@@ -10,6 +10,7 @@ using DesolaDomain.Entities.SkyScannerFields;
 using DesolaDomain.Aggregates;
 using Desola.Common.Exceptions;
 using DesolaDomain.Enums;
+using DesolaInfrastructure.Services.Base;
 
 namespace DesolaInfrastructure.External.Providers.SkyScanner;
 
@@ -26,6 +27,7 @@ public class SkyScannerFlightProvider : BaseFlightProvider
         _skyScannerConfig = settingsOptions.Value.ExternalApi.RapidApi;
         _airlineLogo = new Dictionary<string, string>();
     }
+
     protected override async Task<UnifiedFlightSearchResponse> GetFlightOffersAsync(FlightSearchParameters parameters, CancellationToken cancellationToken)
     {
         try
@@ -68,8 +70,6 @@ public class SkyScannerFlightProvider : BaseFlightProvider
                 },
                 cancellationToken);
 
-            // Post-process the results to add any missing information
-            PostProcessUnifiedResponse(result.UnifiedResponse, parameters);
 
             var cacheKey = GenerateCacheKey(parameters);
             SaveToBlobCacheAsync(cacheKey, result.RawResponse, result.UnifiedResponse);
@@ -127,37 +127,6 @@ public class SkyScannerFlightProvider : BaseFlightProvider
             _airlineLogo.Count, existingLogos.Count);
     }
 
-    private void PostProcessUnifiedResponse(UnifiedFlightSearchResponse response, FlightSearchParameters parameters)
-    {
-        response.Origin = parameters.Origin;
-        response.Destination = parameters.Destination;
-        response.DepartureDate = parameters.DepartureDate;
-        response.ReturnDate = parameters.ReturnDate;
-
-
-        // Ensure we have some basic offer properties set
-        if (response.Offers == null) return;
-        foreach (var offer in response.Offers)
-        {
-            offer.Provider ??= ProviderName;
-
-            offer.FlightSource ??= ProviderName;
-
-            // Ensure baggage allowance is set
-            offer.BaggageAllowance ??= new BaggageAllowance
-            {
-                CheckedBags = 0,
-                Description = "No checked baggage information available"
-            };
-
-            // Ensure fare conditions are set
-            if (offer.FareConditions == null || !offer.FareConditions.Any())
-            {
-                offer.FareConditions = new List<string> { "Fare conditions not specified" };
-            }
-        }
-    }
-
     protected override string GenerateCacheKey(FlightSearchParameters parameters) => $"{ProviderName}_{parameters.Origin}_{parameters.Destination}";
 
     private readonly Func<SkyScannerFlightRequest, IDictionary<string, string>> _skyScannerMapper = criteria =>
@@ -173,7 +142,8 @@ public class SkyScannerFlightProvider : BaseFlightProvider
             ["stops"] = criteria.Stops ?? "direct,1stop",
             ["adults"] = criteria.Adults.ToString(),
             ["infants"] = criteria.Infants.ToString(),
-            ["cabinClass"] = criteria.CabinClass ?? "economy"
+            ["cabinClass"] = criteria.CabinClass ?? "economy",
+            ["sort"] = "cheapest_price"
         };
 
         return parameters;
