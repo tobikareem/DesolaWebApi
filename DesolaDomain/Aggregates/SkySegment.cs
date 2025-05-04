@@ -1,7 +1,6 @@
 ﻿using System.Text.Json.Serialization;
-using DesolaDomain.Aggregates;
 
-namespace DesolaDomain.Entities.AmadeusFields;
+namespace DesolaDomain.Aggregates;
 
 public class SkySegment
 {

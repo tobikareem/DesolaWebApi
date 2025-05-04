@@ -33,7 +33,7 @@ public class AirportScannerService : IAirportScannerService
         _cacheService = cacheService;
         _logger = logger;
         _blobStorageRepository = blobClientRepository;
-        _appSettings = configuration.Value ?? throw new ArgumentNullException(nameof(configuration), "AppSettings is null");
+        _appSettings = configuration.Value;
         _apiService = apiService;
         _mapper = mapper;
     }

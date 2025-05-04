@@ -10,20 +10,7 @@ public class AmadeusErrorResponse
     public List<AmadeusError> Errors { get; set; } = new();
 }
 
-public class AmadeusError
-{
-    [JsonPropertyName("status")]
-    public int Status { get; set; }
-
-    [JsonPropertyName("code")]
-    public int Code { get; set; }
-
-    [JsonPropertyName("title")]
-    public string Title { get; set; } = "Unknown Error";
-
-    [JsonPropertyName("detail")]
-    public string Detail { get; set; } = "No details available";
-}
+public class AmadeusError : ApiKnownError{}
 
 public class AmadeusApiException : Exception
 {

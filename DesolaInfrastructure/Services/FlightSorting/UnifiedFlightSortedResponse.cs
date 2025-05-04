@@ -1,6 +1,6 @@
 ﻿using DesolaDomain.Entities.FlightSearch;
 
-namespace DesolaInfrastructure.FlightSort;
+namespace DesolaInfrastructure.Services.FlightSorting;
 
 public class UnifiedFlightSortedResponse
 {
@@ -81,7 +81,7 @@ public class UnifiedFlightSortedResponse
         var stops = offer.Itineraries.First().Stops;
         var normalizedStops = stops / 3.0; // Normalize against a 3-stop baseline
         
-        return (double)((normalizedPrice * (decimal)priceWeight) +
+        return (double)(normalizedPrice * (decimal)priceWeight +
                         (decimal)(normalizedDuration * durationWeight) +
                         (decimal)(normalizedStops * stopsWeight));
     }

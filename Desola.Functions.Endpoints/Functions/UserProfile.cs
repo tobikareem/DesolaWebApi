@@ -1,8 +1,8 @@
 using AutoMapper;
 using DesolaDomain.Entities.User;
+using DesolaDomain.Interfaces;
 using DesolaServices.Commands.Queries;
 using DesolaServices.DataTransferObjects.Requests;
-using DesolaServices.Interfaces;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;

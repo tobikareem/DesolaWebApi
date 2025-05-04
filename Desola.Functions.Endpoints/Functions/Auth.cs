@@ -32,7 +32,7 @@ public class Auth
             return new BadRequestObjectResult(new { error = "Authorization code is required." });
         }
 
-        string authorizationCode = data["code"];
+        var authorizationCode = data["code"];
 
         try
         {

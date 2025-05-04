@@ -1,5 +1,4 @@
 ﻿using System.Text.Json.Serialization;
-using DesolaDomain.Entities.AmadeusFields;
 
 namespace DesolaDomain.Aggregates;
 

@@ -1,6 +1,6 @@
 ﻿using DesolaDomain.Entities.User;
+using DesolaDomain.Interfaces;
 using DesolaServices.Commands.Requests;
-using DesolaServices.Interfaces;
 using MediatR;
 
 namespace DesolaServices.Handler;

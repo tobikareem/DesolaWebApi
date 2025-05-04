@@ -76,7 +76,7 @@ public class TimeOutAndRetry
         stats.RecordFailure();
     }
 
-    private static void RecordProviderSuccess(string providerName, TimeSpan responseTime, Dictionary<string, ProviderPerformanceStats> providerStats)
+    private static void RecordProviderSuccess(string providerName, TimeSpan responseTime, IDictionary<string, ProviderPerformanceStats> providerStats)
     {
         if (!providerStats.TryGetValue(providerName, out var stats))
         {

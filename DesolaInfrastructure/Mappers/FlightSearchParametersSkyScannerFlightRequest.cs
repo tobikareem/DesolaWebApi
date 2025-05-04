@@ -1,6 +1,8 @@
 ﻿using AutoMapper;
 using DesolaDomain.Entities.AmadeusFields.Basic;
 using DesolaDomain.Entities.SkyScannerFields;
+using System.Reflection;
+using System.Runtime.Serialization;
 
 namespace DesolaInfrastructure.Mappers;
 
@@ -26,13 +28,26 @@ public class FlightSearchParametersSkyScannerFlightRequest: Profile
 
     private static string MapCabinClass(string amadeusClass)
     {
-        return amadeusClass?.ToLowerInvariant() switch
+        if (string.IsNullOrWhiteSpace(amadeusClass))
+            return GetEnumMemberValue(CabinClassOption.Economy);
+
+        var match = amadeusClass.Trim().ToLowerInvariant() switch
         {
-            "economy" => "economy",
-            "premium_economy" => "premiumeconomy",
-            "business" => "business",
-            "first" => "first",
-            _ => "economy",
+            "economy" => CabinClassOption.Economy,
+            "premium_economy" => CabinClassOption.PremiumEconomy,
+            "business" => CabinClassOption.Business,
+            "first" => CabinClassOption.First,
+            _ => CabinClassOption.Economy
         };
+
+        return GetEnumMemberValue(match);
+    }
+
+    private static string GetEnumMemberValue(Enum enumValue)
+    {
+        var type = enumValue.GetType();
+        var memberInfo = type.GetMember(enumValue.ToString()).FirstOrDefault();
+        var enumMemberAttr = memberInfo?.GetCustomAttribute<EnumMemberAttribute>();
+        return enumMemberAttr?.Value ?? enumValue.ToString().ToLowerInvariant();
     }
 }

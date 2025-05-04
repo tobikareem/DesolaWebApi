@@ -4,4 +4,5 @@ public class Database
 {
     public string WebPageContentTableName { get; set; }
     public string UserTravelPreferenceTableName { get; set; }
+    public string UserClickTrackingTableName { get; set; }
 }
