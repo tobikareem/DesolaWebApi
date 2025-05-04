@@ -78,7 +78,7 @@ public class ClickTracking
             await _userClickTrackingTable.InsertTableEntityAsync(preferences);
         }
 
-        return new OkObjectResult("Table Tracking information has been failed!");
+        return new OkObjectResult("Click tracking information saved successfully.");
     }
 
     [Function("GetClickTracking")]
