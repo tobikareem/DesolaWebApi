@@ -1,4 +1,8 @@
-﻿namespace DesolaDomain.Entities.SkyScannerFields;
+﻿using System.ComponentModel;
+using System.Runtime.Serialization;
+using System.Text.Json.Serialization;
+
+namespace DesolaDomain.Entities.SkyScannerFields;
 
 public class SkyScannerFlightRequest
 {
@@ -15,4 +19,39 @@ public class SkyScannerFlightRequest
     public string SortBy { get; set; }
     public string SortOrder { get; set; }
     public bool IsOneWay { get; set; }
+}
+
+/// <summary>
+/// Represents flight cabin class options
+/// </summary>
+[JsonConverter(typeof(JsonStringEnumConverter))]
+public enum CabinClassOption
+{
+    /// <summary>
+    /// Economy class (default)
+    /// </summary>
+    [EnumMember(Value = "economy")]
+    [Description("Economy")]
+    Economy = 1,
+
+    /// <summary>
+    /// Premium economy class
+    /// </summary>
+    [EnumMember(Value = "premium_economy")]
+    [Description("Premium economy")]
+    PremiumEconomy = 2,
+
+    /// <summary>
+    /// Business class
+    /// </summary>
+    [EnumMember(Value = "business")]
+    [Description("Business")]
+    Business = 3,
+
+    /// <summary>
+    /// First class
+    /// </summary>
+    [EnumMember(Value = "first")]
+    [Description("First")]
+    First = 4
 }

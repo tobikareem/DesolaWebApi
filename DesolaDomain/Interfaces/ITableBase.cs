@@ -1,4 +1,4 @@
-﻿namespace DesolaServices.Interfaces
+﻿namespace DesolaDomain.Interfaces
 {
     public interface ITableBase<T> where T : class
     {

@@ -1,6 +1,6 @@
-﻿using System.Diagnostics;
-using amadeus.resources;
+﻿using amadeus.resources;
 using AutoMapper;
+using DesolaDomain.Entities.AmadeusFields.Response;
 using DesolaDomain.Entities.FlightSearch;
 using BaggageAllowance = DesolaDomain.Entities.FlightSearch.BaggageAllowance;
 
@@ -11,6 +11,11 @@ public class AmadeusFlightMappingProfile : Profile
 
     public AmadeusFlightMappingProfile()
     {
+        CreateMap<AmadeusFlightOffersResponse, UnifiedFlightSearchResponse>()
+            .ForMember(dest => dest.Offers, opt => opt.MapFrom(src => src.Data))
+            .ForMember(dest => dest.TotalResults, opt => opt.MapFrom(src => src.Data.Count))
+            .ForMember(dest => dest.CurrencyCode, opt => opt.MapFrom(src => src.Data.FirstOrDefault().price.currency ?? "USD"));
+
         CreateMap<List<FlightOffer>, UnifiedFlightSearchResponse>()
             .ForMember(dest => dest.TotalResults, opt => opt.MapFrom(src => src.Count))
             .ForMember(dest => dest.CurrencyCode, opt => opt.MapFrom(src => src.FirstOrDefault().price.currency ?? "USD"))
@@ -25,11 +30,8 @@ public class AmadeusFlightMappingProfile : Profile
             .ForMember(dest => dest.Itineraries, opt => opt.MapFrom(src => MapItineraries(src.itineraries)))
             .ForMember(dest => dest.BaggageAllowance, opt => opt.MapFrom(src => MapBaggageAllowance(src.travelerPricings)))
             .ForMember(dest => dest.IsRefundable, opt => opt.MapFrom(src => src.pricingOptions.refundableFare))
-            .ForMember(dest => dest.LastTicketingDate, opt => opt.MapFrom(src =>
-               DateTime.Parse(src.lastTicketingDate)))
-            
+            .ForMember(dest => dest.LastTicketingDate, opt => opt.MapFrom(src => DateTime.Parse(src.lastTicketingDate)))
             .ForMember(dest => dest.ValidatingCarrier, opt => opt.MapFrom((src, dest, _, context) => GetAirlineName<FlightOffer>(src, context, "ValidatingCarrier")))
-            
             .ForMember(dest => dest.AvailableSeats, opt => opt.MapFrom(src => src.numberOfBookableSeats))
             .ForMember(dest => dest.FareConditions, opt => opt.MapFrom(src => ExtractFareConditions(src)));
 
@@ -205,12 +207,12 @@ public class AmadeusFlightMappingProfile : Profile
         return $"{(int)duration.TotalHours}h {duration.Minutes}m";
     }
 
-    private string FormatDateTime(DateTime dateTime)
+    private static string FormatDateTime(DateTime dateTime)
     {
         return dateTime.ToString("MMM d, h:mm tt");
     }
 
-    private string GetCabinClass(string segmentId, List<TravelerPricing> travelerPricings)
+    private static string GetCabinClass(string segmentId, List<TravelerPricing> travelerPricings)
     {
         if (travelerPricings == null || !travelerPricings.Any())
             return "Economy";
@@ -225,19 +227,15 @@ public class AmadeusFlightMappingProfile : Profile
         return "Economy";
     }
 
-    private List<string> ExtractFareConditions(FlightOffer offer)
+    private static List<string> ExtractFareConditions(FlightOffer offer)
     {
-        var conditions = new List<string>();
-
-        if (offer.pricingOptions?.refundableFare == true)
-            conditions.Add("Refundable");
-        else
-            conditions.Add("Non-refundable");
-
-        if (offer.pricingOptions?.includedCheckedBagsOnly == true)
-            conditions.Add("Checked baggage included");
-        else
-            conditions.Add("No checked baggage included");
+        var conditions = new List<string>
+        {
+            offer.pricingOptions?.refundableFare == true ? "Refundable" : "Non-refundable",
+            offer.pricingOptions?.includedCheckedBagsOnly == true
+                ? "Checked baggage included"
+                : "No checked baggage included"
+        };
 
         if (offer.pricingOptions?.noRestrictionFare == true)
             conditions.Add("No restrictions");

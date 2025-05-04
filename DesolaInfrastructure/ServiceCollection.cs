@@ -1,5 +1,4 @@
-﻿using amadeus;
-using Azure.Data.Tables;
+﻿using Azure.Data.Tables;
 using CaptainOath.DataStore.Extension;
 using CaptainOath.DataStore.Interface;
 using CaptainOath.DataStore.Repositories;
@@ -8,12 +7,13 @@ using DesolaDomain.Entities.User;
 using DesolaDomain.Interfaces;
 using DesolaDomain.Settings;
 using DesolaInfrastructure.Data;
-using DesolaInfrastructure.External;
-using DesolaInfrastructure.External.Amadeus;
 using DesolaInfrastructure.Services.Implementations;
 using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
-using DesolaInfrastructure.External.SkyScanner;
+using DesolaInfrastructure.External.Providers.Amadeus;
+using DesolaInfrastructure.External.Providers.Google;
+using DesolaInfrastructure.External.Providers.SkyScanner;
+using DesolaInfrastructure.Services.TableStorage;
 
 namespace DesolaInfrastructure;
 
@@ -41,25 +41,23 @@ public static class ServiceCollection
         services.AddHttpClient();
         services.AddScoped<IHttpService, HttpService>();
         services.AddScoped<IApiService, ApiService>();
-        services.AddScoped<IAmadeusService, AmadeusService>();
 
         services.AddAutoMapper(Assembly.GetExecutingAssembly());
 
+        services.AddScoped<ITableBase<WebSection>, WebPageDesignTableService>();
+        services.AddScoped<ITableBase<UserClickTracking>, ClickTrackingTableService>();
+        services.AddScoped<ITableBase<UserTravelPreference>, UserPreferenceTableService>();
 
         services.AddScoped<AmadeusFlightProvider>();
         services.AddScoped<SkyScannerFlightProvider>();
+        services.AddScoped<GoogleFlightProvider>();
 
         services.AddScoped<IEnumerable<IFlightProvider>>(serviceProvider => new List<IFlightProvider>
         {
             serviceProvider.GetRequiredService<AmadeusFlightProvider>(),
-            serviceProvider.GetRequiredService<SkyScannerFlightProvider>()
+            serviceProvider.GetRequiredService<SkyScannerFlightProvider>(),
+            serviceProvider.GetRequiredService<GoogleFlightProvider>()
         });
-
-        //var amadeus = Amadeus
-        //    .builder(configuration.ExternalApi.Amadeus.ClientId, configuration.ExternalApi.Amadeus.ClientSecret)
-        //    .build();
-        //services.AddSingleton(amadeus);
-
 
         return services;
     }
@@ -68,6 +66,7 @@ public static class ServiceCollection
     {
         services.AddSingleton<ITableStorageRepository<WebSection>, TableStorageRepository<WebSection>>();
         services.AddSingleton<ITableStorageRepository<UserTravelPreference>, TableStorageRepository<UserTravelPreference>>();
+        services.AddSingleton<ITableStorageRepository<UserClickTracking>, TableStorageRepository<UserClickTracking>>();
 
         services.AddSingleton(_ =>
         {
