@@ -18,7 +18,7 @@
     <PackageReference Include="amadeus-dotnet" Version="2.0.0" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="9.0.4" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.4" />
-    <PackageReference Include="CaptainOath.DataStore" Version="2.0.5" />
+    <PackageReference Include="CaptainOath.DataStore" Version="2.0.6" />
   </ItemGroup>
 
   <ItemGroup>

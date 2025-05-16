@@ -1,9 +1,7 @@
 ﻿using Azure;
 using CaptainOath.DataStore.Interface;
 using DesolaDomain.Interfaces;
-using DesolaDomain.Settings;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 
 namespace DesolaInfrastructure.Services.Base;
 
@@ -85,6 +83,11 @@ public abstract class BaseTableStorage<TEntity>: ITableBase<TEntity> where TEnti
         SetETag(entity, GetETag(existing));
         await _storageRepository.UpdateTableEntityAsync(TableName, entity);
         CacheService.Remove(GetCacheKey(GetPartitionKey(entity), GetRowKey(entity)));
+    }
+
+    public  Task<(List<TEntity> Items, string ContinuationToken)> GetTableEntitiesByQueryAsync(string query, int pageSize, string decodedToken)
+    {
+        return _storageRepository.GetTableEntitiesPagedAsync(TableName, query, pageSize, decodedToken);
     }
 
     protected virtual string GetCacheKey(string partitionKey, string rowKey) => $"{partitionKey}:{rowKey}";
