@@ -10,6 +10,7 @@ public class AppSettings
     public Airlines Airlines { get; set; }
     public Database Database { get; set; }
     public AzureB2C AzureB2C { get; set; }
+    public Payment Payment { get; set; }
 }
 
 // Storage Account 

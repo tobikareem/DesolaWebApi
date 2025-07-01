@@ -9,7 +9,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Identity.Web;
 
-var host = new HostBuilder()
+ var host = new HostBuilder()
     .ConfigureFunctionsWebApplication()
     .ConfigureAppConfiguration((context, config) =>
     {
@@ -20,10 +20,22 @@ var host = new HostBuilder()
     {
         var configuration = context.Configuration;
 
+        var allKeys = configuration.AsEnumerable().Select(x => x.Key).ToList();
+        Console.WriteLine($"Available configuration keys: {string.Join(", ", allKeys)}");
+
+
         services.Configure<AppSettings>(configuration);
 
         var appSettings = new AppSettings();
         configuration.Bind(appSettings);
+
+        if (appSettings.ExternalApi == null)
+        {
+            var valuesSection = configuration.GetSection("Values");
+            services.Configure<AppSettings>(valuesSection);
+            appSettings = new AppSettings();
+            valuesSection.Bind(appSettings);
+        }
 
         services.AddSingleton(appSettings);
 
@@ -37,9 +49,7 @@ var host = new HostBuilder()
         {
             options.AddDefaultPolicy(builder =>
             {
-                builder.WithOrigins("https://desolatravels.com",
-                        "https://www.desolatravels.com",
-                        "http://localhost:5173")
+                builder.WithOrigins("https://desolatravels.com", "https://www.desolatravels.com", "http://localhost:5173")
                     .AllowAnyMethod()
                     .AllowAnyHeader();
             });

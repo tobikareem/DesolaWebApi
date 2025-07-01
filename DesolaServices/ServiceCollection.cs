@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
+using DesolaDomain.Interfaces;
 using DesolaDomain.Settings;
 using DesolaServices.Interfaces;
 using DesolaServices.Services;
@@ -14,6 +15,7 @@ public static class ServiceCollection
         services.AddScoped<IFlightSearchService, FlightSearchService>();
         services.AddScoped<IAirlineRouteService, AirlineRouteService>();
         services.AddScoped<IAirportScannerService, AirportScannerService>();
+        services.AddScoped<ICustomerManagementService, CustomerManagementService>();
         services.AddScoped<IAuthService, AuthService>();
 
         services.AddMediatR(config => config.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly()));

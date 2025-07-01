@@ -10,6 +10,7 @@ using DesolaInfrastructure.Data;
 using DesolaInfrastructure.Services.Implementations;
 using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
+using CaptainPayment.Extensions;
 using DesolaInfrastructure.External.Providers.Amadeus;
 using DesolaInfrastructure.External.Providers.Google;
 using DesolaInfrastructure.External.Providers.SkyScanner;
@@ -47,6 +48,7 @@ public static class ServiceCollection
         services.AddScoped<ITableBase<WebSection>, WebPageDesignTableService>();
         services.AddScoped<ITableBase<UserClickTracking>, ClickTrackingTableService>();
         services.AddScoped<ITableBase<UserTravelPreference>, UserPreferenceTableService>();
+        services.AddScoped<ITableBase<Customer>, CustomerTableService>();
 
         services.AddScoped<AmadeusFlightProvider>();
         services.AddScoped<SkyScannerFlightProvider>();
@@ -57,6 +59,16 @@ public static class ServiceCollection
             serviceProvider.GetRequiredService<AmadeusFlightProvider>(),
             serviceProvider.GetRequiredService<SkyScannerFlightProvider>(),
             serviceProvider.GetRequiredService<GoogleFlightProvider>()
+        });
+        
+        services.AddStripePayments(options =>
+        {
+            options.SecretKey = configuration.Payment.Stripe.SandboxClientSecret; // This is usually the secret key for test mode
+            options.PublishableKey = configuration.Payment.Stripe.SandboxClientId; // This is usually the publishable key
+            options.WebhookSecret = configuration.Payment.Stripe.WebhookSecret;
+            options.ProviderName = configuration.Payment.Stripe.ProviderName;
+            options.PaymentOptions = configuration.Payment.Stripe.PaymentOptions;
+            options.SubscriptionDefaults = configuration.Payment.Stripe.SubscriptionDefaults;
         });
 
         return services;
