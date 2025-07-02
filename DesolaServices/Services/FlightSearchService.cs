@@ -32,7 +32,7 @@ internal class FlightSearchService : IFlightSearchService
         _airlineRepository = airlineRepository;
     }
 
-    public async Task<Dictionary<string, FlightItineraryGroupResponse>> SearchFlightsAsync(FlightSearchBasicRequest criteria, CancellationToken cancellationToken)
+    public   Task<Dictionary<string, FlightItineraryGroupResponse>> SearchFlightsAsync(FlightSearchBasicRequest criteria, CancellationToken cancellationToken)
     {
         throw new NotImplementedException();
         //try
@@ -63,7 +63,7 @@ internal class FlightSearchService : IFlightSearchService
         //}
     }
 
-    public async Task<Dictionary<string, FlightItineraryGroupResponse>> SearchAdvancedFlightsAsync(
+    public   Task<Dictionary<string, FlightItineraryGroupResponse>> SearchAdvancedFlightsAsync(
         FlightSearchAdvancedRequest criteria, CancellationToken cancellationToken)
     {
         throw new NotImplementedException();

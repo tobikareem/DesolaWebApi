@@ -20,10 +20,6 @@ using Microsoft.Identity.Web;
     {
         var configuration = context.Configuration;
 
-        var allKeys = configuration.AsEnumerable().Select(x => x.Key).ToList();
-        Console.WriteLine($"Available configuration keys: {string.Join(", ", allKeys)}");
-
-
         services.Configure<AppSettings>(configuration);
 
         var appSettings = new AppSettings();
