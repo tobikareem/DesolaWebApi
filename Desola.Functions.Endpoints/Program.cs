@@ -34,10 +34,13 @@ using Microsoft.Identity.Web;
         }
 
         services.AddSingleton(appSettings);
-
         services.AddMemoryCache();
-        services.AddApplicationInsightsTelemetryWorkerService();
-        services.ConfigureFunctionsApplicationInsights();
+
+        if (!context.HostingEnvironment.IsDevelopment())
+        {
+            services.AddApplicationInsightsTelemetryWorkerService();
+            services.ConfigureFunctionsApplicationInsights();
+        }
 
         services.AddDesolaInfrastructure(appSettings);
         services.AddDesolaApplications(appSettings);
@@ -93,7 +96,6 @@ using Microsoft.Identity.Web;
 
         services.AddAuthorization();
 
-    })
-    .Build();
+    }).Build();
 
 host.Run();

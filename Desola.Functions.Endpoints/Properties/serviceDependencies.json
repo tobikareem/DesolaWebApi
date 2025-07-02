@@ -1,30 +1,11 @@
 {
   "dependencies": {
-    "apis1": {
-      "type": "apis"
-    },
     "appInsights1": {
-      "type": "appInsights",
-      "connectionId": "APPLICATIONINSIGHTS_CONNECTION_STRING"
-    },
-    "appInsights2": {
-      "type": "appInsights",
-      "connectionId": "APPLICATIONINSIGHTS_CONNECTION_STRING1",
-      "dynamicId": null
-    },
-    "appInsights3": {
-      "type": "appInsights",
-      "connectionId": "APPLICATIONINSIGHTS_CONNECTION_STRING2",
-      "dynamicId": null
-    },
-    "apis2": {
-      "ignored": "true",
-      "type": "apis.azure"
+      "type": "appInsights"
     },
     "storage1": {
       "type": "storage",
-      "connectionId": "AzureWebJobsStorage",
-      "dynamicId": null
+      "connectionId": "AzureWebJobsStorage"
     }
   }
 }
