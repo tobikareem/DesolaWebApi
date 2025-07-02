@@ -19,6 +19,8 @@ public class CustomerSignupRequest
     public string PreferredCurrency { get; set; } = "USD";
 
     [StringLength(5, MinimumLength = 3, ErrorMessage = "Airport code must be 3-5 characters")]
+
+    public string CustomerId { get; set; }
     public string DefaultOriginAirport { get; set; }
     public Dictionary<string, string> Metadata { get; set; } = new();
 

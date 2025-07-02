@@ -69,6 +69,7 @@ public class CustomerManagementService : ICustomerManagementService
 
             var localCustomer = _mapper.Map<Customer>(customer);
             localCustomer.StripeCustomerId = stripeCustomer.Id;
+            localCustomer.CustomerId = customer.CustomerId;
 
             await _customerTableService.InsertTableEntityAsync(localCustomer);
             _logger.LogInformation("Local customer record created for email: {Email}", customer.Email);

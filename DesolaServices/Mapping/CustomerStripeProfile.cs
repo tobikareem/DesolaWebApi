@@ -93,7 +93,8 @@ public class CustomerStripeProfile : Profile
             .ForMember(dest => dest.Phone, opt => opt.MapFrom(src => src.Phone))
             .ForMember(dest => dest.PreferredCurrency, opt => opt.MapFrom(src => src.PreferredCurrency))
             .ForMember(dest => dest.DefaultOriginAirport, opt => opt.MapFrom(src => src.DefaultOriginAirport))
-            .ForMember(dest => dest.Metadata, opt => opt.MapFrom(src => src.Metadata));
+            .ForMember(dest => dest.Metadata, opt => opt.MapFrom(src => src.Metadata))
+            .ForMember(dest => dest.CustomerId, opt => opt.MapFrom(src => src.CustomerId));
 
     }
 

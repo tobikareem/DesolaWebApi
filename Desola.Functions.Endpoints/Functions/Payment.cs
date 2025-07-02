@@ -1,3 +1,4 @@
+using DesolaServices.Commands.Queries.Payment;
 using DesolaServices.Commands.Requests;
 using DesolaServices.DataTransferObjects.Requests;
 using DesolaServices.DataTransferObjects.Responses;
@@ -7,10 +8,12 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Attributes;
 using Microsoft.Extensions.Logging;
+using Microsoft.Identity.Web;
+using Microsoft.Identity.Web.Resource;
 using Microsoft.OpenApi.Models;
 using Newtonsoft.Json;
 using System.Net;
-using DesolaServices.Commands.Queries.Payment;
+using System.Security.Claims;
 
 namespace Desola.Functions.Endpoints.Functions;
 
@@ -47,6 +50,17 @@ public class Payment
             {
                 return new BadRequestObjectResult(CustomerSignupResponse.FailureResult("Invalid or missing signup data."));
             }
+
+            var isAuthenticated = await IsUserAuthenticated(req);
+
+            if (!isAuthenticated.authenticationStatus)
+            {
+                return isAuthenticated.authenticationResponse!;
+            }
+
+            req.HttpContext.VerifyUserHasAnyAcceptedScope("Files.Read");
+
+            command.CustomerId = req.HttpContext.User.Identity is { IsAuthenticated: true } ? req.HttpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value : null; // 78af2b87-6e98-4eec-91ba-2d12d36e71c3
 
             var result = await _mediator.Send(command, cancellationToken);
 
@@ -321,7 +335,7 @@ public class Payment
     //        };
     //    }
     //}
-    
+
 
     //#region Payment Management
 
@@ -513,4 +527,7 @@ public class Payment
     //}
 
     //#endregion
+
+    private static async Task<(bool authenticationStatus, IActionResult? authenticationResponse)> IsUserAuthenticated(HttpRequest req) => await req.HttpContext.AuthenticateAzureFunctionAsync();
+
 }
