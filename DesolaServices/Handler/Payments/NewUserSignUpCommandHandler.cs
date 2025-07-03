@@ -8,7 +8,7 @@ using Microsoft.Extensions.Logging;
 
 namespace DesolaServices.Handler.Payments;
 
-public class NewUserSignUpCommandHandler: IRequest<NewUserSignUpCommand>
+public class NewUserSignUpCommandHandler: IRequestHandler<NewUserSignUpCommand, CustomerSignupResponse>
 {
     private readonly ICustomerManagementService _customerManagementService;
     private readonly ILogger<NewUserSignUpCommandHandler> _logger;
@@ -23,6 +23,7 @@ public class NewUserSignUpCommandHandler: IRequest<NewUserSignUpCommand>
 
     public async Task<CustomerSignupResponse> Handle(NewUserSignUpCommand request, CancellationToken cancellationToken)
     {
+        
         try
         {
             _logger.LogInformation("Processing user signup for email: {Email}", request.Email);

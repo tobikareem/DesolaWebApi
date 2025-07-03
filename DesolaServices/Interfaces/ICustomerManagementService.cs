@@ -1,63 +1,36 @@
 ﻿using DesolaDomain.Entities.User;
-using DesolaDomain.Model;
 using DesolaServices.DataTransferObjects.Requests;
-using DesolaServices.DataTransferObjects.Responses;
 
 namespace DesolaServices.Interfaces;
 
 public interface ICustomerManagementService
 {
     /// <summary>
-    /// Gets a customer by their email address.
+    /// Gets customer by email with proper synchronization between local and Stripe data
     /// </summary>
-    /// <param name="email">The customer's email address.</param>
-    /// <returns>The customer if found, null otherwise.</returns>
-    Task<Customer> GetByEmailAsync(string email);
-    /// <summary>
-    /// Gets a customer by their Stripe customer ID.
-    /// Note: This is less efficient as it requires scanning. Consider caching or indexing.
-    /// </summary>
-    /// <param name="stripeCustomerId">The Stripe customer ID.</param>
-    /// <returns>The customer if found, null otherwise.</returns>
-    Task<Customer> GetByStripeCustomerIdAsync(string stripeCustomerId);
+    Task<Customer> GetCustomerAsync(string email, CancellationToken cancellationToken = default);
+
 
     /// <summary>
-    /// Creates a new customer record.
+    /// Gets customer by Stripe Customer ID
     /// </summary>
-    /// <param name="customer">The customer to create.</param>
-    /// <param name="tokenSource"></param>
-    /// <returns>The created customer with updated properties.</returns>
-    Task<CustomerCreationResult> CreateCustomerAsync(CustomerSignupRequest customer, CancellationToken tokenSource);
+    Task<Customer> GetCustomerByStripeIdAsync(string stripeCustomerId, CancellationToken cancellationToken = default);
+
+
 
     /// <summary>
-    /// Updates an existing customer record.
+    /// Creates a new customer with Stripe integration
     /// </summary>
-    /// <param name="customer">The customer to update.</param>
-    /// <returns>The updated customer.</returns>
-    Task<Customer> UpdateCustomerAsync(Customer customer);
+    Task<(bool Success, Customer Customer, string StripeCustomerId, string ErrorMessage)> CreateCustomerAsync(CustomerSignupRequest request, CancellationToken cancellationToken = default);
+
 
     /// <summary>
-    /// Gets all customers with active subscriptions.
-    /// Note: This is expensive for large datasets. Consider using a separate index or query optimization.
+    /// Updates customer subscription status
     /// </summary>
-    /// <returns>List of customers with active subscriptions.</returns>
-    Task<IEnumerable<Customer>> GetActiveSubscribersAsync();
+    Task<bool> UpdateSubscriptionStatusAsync(string stripeCustomerId, bool hasActiveSubscription, DateTime? subscriptionExpiresAt, string subscriptionId, CancellationToken cancellationToken);
 
     /// <summary>
-    /// Updates the subscription status for a customer.
+    /// Updates customer profile information and syncs with Stripe
     /// </summary>
-    /// <param name="stripeCustomerId">The Stripe customer ID.</param>
-    /// <param name="hasActiveSubscription">Whether the subscription is active.</param>
-    /// <param name="subscriptionExpiresAt">When the subscription expires (optional).</param>
-    /// <param name="subscriptionId">The subscription ID (optional).</param>
-    /// <returns>True if updated successfully, false otherwise.</returns>
-    Task<bool> UpdateSubscriptionStatusAsync(string stripeCustomerId, bool hasActiveSubscription, DateTime? subscriptionExpiresAt = null, string subscriptionId = null);
-
-    /// <summary>
-    /// Gets customers by domain (email domain).
-    /// </summary>
-    /// <param name="domain">The email domain (e.g., "gmail.com").</param>
-    /// <param name="limit">Maximum number of customers to return.</param>
-    /// <returns>List of customers from the specified domain.</returns>
-    Task<IEnumerable<Customer>> GetCustomersByDomainAsync(string domain, int limit = 100);
+    Task<bool> UpdateCustomerProfileAsync(string email, string fullName = null, string phone = null, string preferredCurrency = null, string defaultOriginAirport = null, Dictionary<string, string> additionalMetadata = null, CancellationToken cancellationToken = default);
 }

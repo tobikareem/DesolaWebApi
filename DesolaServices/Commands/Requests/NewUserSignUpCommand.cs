@@ -4,7 +4,7 @@ using MediatR;
 
 namespace DesolaServices.Commands.Requests;
 
-public class NewUserSignUpCommand: CustomerSignupRequest, IRequest<CustomerSignupResponse>
+public class NewUserSignUpCommand : CustomerSignupRequest, IRequest<CustomerSignupResponse>
 {
     /// <summary>
     /// Validates the command

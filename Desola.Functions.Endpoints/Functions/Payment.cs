@@ -106,6 +106,17 @@ public class Payment
                 return new BadRequestObjectResult(CustomerUpdateResponse.FailureResult("Invalid or missing update data."));
             }
 
+            var isAuthenticated = await IsUserAuthenticated(req);
+
+            if (!isAuthenticated.authenticationStatus)
+            {
+                return isAuthenticated.authenticationResponse!;
+            }
+
+            req.HttpContext.VerifyUserHasAnyAcceptedScope("Files.Read");
+
+            command.CustomerId = req.HttpContext.User.Identity is { IsAuthenticated: true } ? req.HttpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value : null; // 78af2b87-6e98-4eec-91ba-2d12d36e71c3
+
             var result = await _mediator.Send(command, cancellationToken);
 
             return result.Success switch
@@ -194,10 +205,22 @@ public class Payment
                 return new BadRequestObjectResult(CustomerUpdateResponse.FailureResult("Field value is required"));
             }
 
+
             var command = new UpdateCustomerCommand
             {
                 Email = email,
             };
+
+            var isAuthenticated = await IsUserAuthenticated(req);
+
+            if (!isAuthenticated.authenticationStatus)
+            {
+                return isAuthenticated.authenticationResponse!;
+            }
+
+            req.HttpContext.VerifyUserHasAnyAcceptedScope("Files.Read");
+
+            command.CustomerId = req.HttpContext.User.Identity is { IsAuthenticated: true } ? req.HttpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value : null; // 78af2b87-6e98-4eec-91ba-2d12d36e71c3
 
             // Set the specific field based on the parameter
             switch (field.ToLowerInvariant())

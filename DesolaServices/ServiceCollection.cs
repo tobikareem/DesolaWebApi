@@ -4,12 +4,13 @@ using DesolaDomain.Interfaces;
 using DesolaDomain.Settings;
 using DesolaServices.Interfaces;
 using DesolaServices.Services;
+using CaptainPayment.Extensions;
 
 namespace DesolaServices;
 
 public static class ServiceCollection
 {
-    public static IServiceCollection AddDesolaApplications(this IServiceCollection services, AppSettings appSettings)
+    public static IServiceCollection AddDesolaApplications(this IServiceCollection services, AppSettings configuration)
     {
 
         services.AddScoped<IFlightSearchService, FlightSearchService>();
@@ -21,6 +22,17 @@ public static class ServiceCollection
         services.AddMediatR(config => config.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly()));
 
         services.AddAutoMapper(Assembly.GetExecutingAssembly());
+
+        services.AddStripePayments(options =>
+        {
+            options.SecretKey = configuration.Payment.Stripe.SandboxClientSecret; // This is usually the secret key for test mode
+            options.PublishableKey = configuration.Payment.Stripe.SandboxClientId; // This is usually the publishable key
+            options.WebhookSecret = configuration.Payment.Stripe.WebhookSecret;
+            options.ProviderName = configuration.Payment.Stripe.ProviderName;
+            options.PaymentOptions = configuration.Payment.Stripe.PaymentOptions;
+            options.SubscriptionDefaults = configuration.Payment.Stripe.SubscriptionDefaults;
+        });
+
         return services;
     }
 }

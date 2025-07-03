@@ -4,7 +4,6 @@ using DesolaDomain.Entities.User;
 namespace DesolaServices.DataTransferObjects.Requests;
 public class CustomerDto
 {
-    public int Id { get; set; }
     public string Email { get; set; }
     public string FullName { get; set; }
     public string Phone { get; set; }
@@ -19,7 +18,6 @@ public class CustomerDto
     {
         return new CustomerDto
         {
-            Id = customer.Id,
             Email = customer.Email,
             FullName = customer.FullName,
             Phone = customer.Phone,

@@ -6,7 +6,7 @@ using Microsoft.Extensions.Logging;
 
 namespace DesolaServices.Handler.Payments;
 
-public class GetCustomerByEmailQueryHandler: IRequest<GetCustomerByEmailQuery>
+public class GetCustomerByEmailQueryHandler: IRequestHandler<GetCustomerByEmailQuery, Customer>
 {
     private readonly ILogger<GetCustomerByEmailQueryHandler> _logger;
     private readonly ICustomerManagementService _customerManagementService;
@@ -20,7 +20,7 @@ public class GetCustomerByEmailQueryHandler: IRequest<GetCustomerByEmailQuery>
     public async Task<Customer> Handle(GetCustomerByEmailQuery request, CancellationToken cancellationToken)
     {
         _logger.LogInformation($"Fetching customer by email: {request.Email}");
-        var customer = await _customerManagementService.GetByEmailAsync(request.Email);
+        var customer = await _customerManagementService.GetCustomerAsync(request.Email, cancellationToken);
         if (customer == null)
         {
             _logger.LogWarning($"No customer found with email: {request.Email}");

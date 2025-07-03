@@ -29,7 +29,7 @@ public class CustomerTableService : BaseTableStorage<Customer>, ICustomerTableSe
 
     protected override string GetRowKey(Customer entity)
     {
-        return entity.Email?.ToLowerInvariant() ?? entity.Id.ToString();
+        return entity.Email?.ToLowerInvariant();
     }
 
     protected override ETag GetETag(Customer entity) => entity.ETag;

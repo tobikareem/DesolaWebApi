@@ -1,5 +1,4 @@
-﻿using AutoMapper;
-using DesolaDomain.Entities.User;
+﻿using DesolaDomain.Entities.User;
 using DesolaServices.Commands.Requests;
 using DesolaServices.DataTransferObjects.Responses;
 using DesolaServices.Interfaces;
@@ -8,25 +7,26 @@ using Microsoft.Extensions.Logging;
 
 namespace DesolaServices.Handler.Payments;
 
-public class UpdateCustomerCommandHandler : IRequest<UpdateCustomerCommand>
+public class UpdateCustomerCommandHandler : IRequestHandler<UpdateCustomerCommand, CustomerUpdateResponse>
 {
     private readonly ICustomerManagementService _customerManagementService;
     private readonly ILogger<UpdateCustomerCommandHandler> _logger;
-    private readonly IMapper _mapper;
-
     public UpdateCustomerCommandHandler(
         ICustomerManagementService customerManagementService,
-        ILogger<UpdateCustomerCommandHandler> logger,
-        IMapper mapper)
+        ILogger<UpdateCustomerCommandHandler> logger)
     {
-        _customerManagementService = customerManagementService ??
-                                     throw new ArgumentNullException(nameof(customerManagementService));
+        _customerManagementService = customerManagementService ?? throw new ArgumentNullException(nameof(customerManagementService));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
     }
 
     public async Task<CustomerUpdateResponse> Handle(UpdateCustomerCommand request, CancellationToken cancellationToken)
     {
+        if (request == null)
+        {
+            _logger.LogError("UpdateCustomerCommand request is null");
+            return CustomerUpdateResponse.FailureResult("Request cannot be null");
+        }
+
         try
         {
             _logger.LogInformation("Processing customer update for email: {Email}", request.Email);
@@ -40,7 +40,7 @@ public class UpdateCustomerCommandHandler : IRequest<UpdateCustomerCommand>
             }
 
             // 2. Get existing customer
-            var existingCustomer = await _customerManagementService.GetByEmailAsync(request.Email);
+            var existingCustomer = await _customerManagementService.GetCustomerAsync(request.Email, cancellationToken);
             if (existingCustomer == null)
             {
                 _logger.LogWarning("Customer not found for email: {Email}", request.Email);
@@ -55,10 +55,28 @@ public class UpdateCustomerCommandHandler : IRequest<UpdateCustomerCommand>
             // 4. Apply updates to the customer object
             var updatedCustomer = ApplyUpdates(existingCustomer, request);
 
-            // 5. Update in local storage
-            var stripeUpdated = await _customerManagementService.UpdateCustomerAsync(updatedCustomer);
-            
-            return CustomerUpdateResponse.SuccessResult(stripeUpdated, updatedFields, true);
+            // 5. Validate the updated customer
+            if (!updatedCustomer.IsValid(out var customerValidationErrors))
+            {
+                _logger.LogError("Customer validation failed after applying updates: {Email}. Errors: {Errors}",
+                    request.Email, string.Join(", ", customerValidationErrors));
+                return CustomerUpdateResponse.ValidationFailureResult(customerValidationErrors);
+            }
+
+            // 6. Update in local storage and sync with Stripe if needed
+            var success = await _customerManagementService.UpdateCustomerProfileAsync(
+                request.Email,
+                request.FullName,
+                request.Phone,
+                request.PreferredCurrency,
+                request.DefaultOriginAirport,
+                request.Metadata,
+                cancellationToken);
+
+            if (!success) return CustomerUpdateResponse.FailureResult("Failed to update customer");
+            updatedCustomer = await _customerManagementService.GetCustomerAsync(request.Email, cancellationToken);
+            return CustomerUpdateResponse.SuccessResult(updatedCustomer, request.GetUpdatedFields(), true);
+
         }
         catch (KeyNotFoundException ex)
         {
@@ -84,32 +102,60 @@ public class UpdateCustomerCommandHandler : IRequest<UpdateCustomerCommand>
 
     private static Customer ApplyUpdates(Customer existingCustomer, UpdateCustomerCommand request)
     {
+        if (existingCustomer == null)
+            throw new ArgumentNullException(nameof(existingCustomer));
+
+        if (request == null)
+            throw new ArgumentNullException(nameof(request));
+
         // Only update fields that are provided (not null/empty)
-        if (!string.IsNullOrEmpty(request.FullName))
-            existingCustomer.FullName = request.FullName;
+        if (!string.IsNullOrWhiteSpace(request.FullName))
+        {
+            existingCustomer.FullName = request.FullName.Trim();
+        }
 
-        if (!string.IsNullOrEmpty(request.Phone))
-            existingCustomer.Phone = request.Phone;
+        if (!string.IsNullOrWhiteSpace(request.Phone))
+        {
+            existingCustomer.Phone = request.Phone.Trim();
+        }
 
-        if (!string.IsNullOrEmpty(request.PreferredCurrency))
-            existingCustomer.PreferredCurrency = request.PreferredCurrency;
+        if (!string.IsNullOrWhiteSpace(request.PreferredCurrency))
+        {
+            existingCustomer.PreferredCurrency = request.PreferredCurrency.Trim().ToUpperInvariant();
+        }
 
-        if (!string.IsNullOrEmpty(request.DefaultOriginAirport))
-            existingCustomer.DefaultOriginAirport = request.DefaultOriginAirport;
-        
+        if (!string.IsNullOrWhiteSpace(request.DefaultOriginAirport))
+        {
+            existingCustomer.DefaultOriginAirport = request.DefaultOriginAirport.Trim().ToUpperInvariant();
+        }
+
+        // Handle metadata updates
         if (request.Metadata?.Any() == true)
         {
-            existingCustomer.Metadata ??= new Dictionary<string, string>();
+            var currentMetadata = existingCustomer.Metadata ?? new Dictionary<string, string>();
 
-            foreach (var kvp in request.Metadata)
+            foreach (var (key, value) in request.Metadata)
             {
-                existingCustomer.Metadata[kvp.Key] = kvp.Value;
+                if (string.IsNullOrWhiteSpace(key)) 
+                    continue;
+                if (string.IsNullOrEmpty(value))
+                {
+                    currentMetadata.Remove(key);
+                }
+                else
+                {
+                    currentMetadata[key] = value;
+                }
             }
+
+            existingCustomer.Metadata = currentMetadata;
         }
-        
+
+        // Update timestamp and metadata
         existingCustomer.LastActiveAt = DateTime.UtcNow;
+        existingCustomer.SetMetadata("last_updated", DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss"));
+        existingCustomer.SetMetadata("update_source", "admin_portal");
 
         return existingCustomer;
     }
-
 }
