@@ -33,4 +33,13 @@ public interface ICustomerManagementService
     /// Updates customer profile information and syncs with Stripe
     /// </summary>
     Task<bool> UpdateCustomerProfileAsync(string email, string fullName = null, string phone = null, string preferredCurrency = null, string defaultOriginAirport = null, Dictionary<string, string> additionalMetadata = null, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="existingCustomer"></param>
+    /// <param name="updatedFields"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    Task<bool> UpdateCustomerProfileAsync(Customer existingCustomer, List<string> updatedFields, CancellationToken cancellationToken = default);
 }

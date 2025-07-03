@@ -19,15 +19,10 @@ public class GetCustomerByEmailQueryHandler: IRequestHandler<GetCustomerByEmailQ
 
     public async Task<Customer> Handle(GetCustomerByEmailQuery request, CancellationToken cancellationToken)
     {
-        _logger.LogInformation($"Fetching customer by email: {request.Email}");
         var customer = await _customerManagementService.GetCustomerAsync(request.Email, cancellationToken);
-        if (customer == null)
-        {
-            _logger.LogWarning($"No customer found with email: {request.Email}");
-            return new Customer();
-        }
-        _logger.LogInformation($"Customer found: {customer.Email}");
-        return customer;
+        if (customer != null) return customer;
+        _logger.LogWarning($"No customer found with email: {request.Email}");
+        return new Customer();
     }
 
 }

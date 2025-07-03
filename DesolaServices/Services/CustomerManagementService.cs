@@ -37,10 +37,6 @@ public class CustomerManagementService : ICustomerManagementService
 
         try
         {
-            _logger.LogInformation("Getting customer details for email: {Email}", email);
-
-
-
             // Get local customer first
             var localCustomer = await GetLocalCustomerAsync(email);
 
@@ -170,7 +166,7 @@ public class CustomerManagementService : ICustomerManagementService
             customer.SetMetadata("subscription_status", hasActiveSubscription ? "active" : "inactive");
             customer.SetMetadata("last_subscription_update", DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss"));
 
-            await SafeUpdateCustomerAsync(customer);
+            await SafeUpdateCustomerTableStorageAsync(customer);
 
             // Sync with Stripe using the new mapper
             var updateRequest = _mapper.Map<UpdateCustomerRequest>(customer);
@@ -185,6 +181,84 @@ public class CustomerManagementService : ICustomerManagementService
         {
             _logger.LogError(ex, "Error updating subscription status for Stripe customer {StripeCustomerId}", stripeCustomerId);
             return false;
+        }
+    }
+
+    public async Task<bool> UpdateCustomerProfileAsync(Customer existingCustomer, List<string> updatedFields, CancellationToken cancellationToken = default)
+    {
+        if (existingCustomer == null)
+            throw new ArgumentNullException(nameof(existingCustomer));
+
+        if (updatedFields == null || !updatedFields.Any())
+        {
+            _logger.LogInformation("No fields to update for customer: {Email}", existingCustomer.Email);
+            return true;
+        }
+
+        try
+        {
+            _logger.LogInformation("Updating customer profile: {Email}, Fields: {Fields}",
+                existingCustomer.Email, string.Join(", ", updatedFields));
+            
+            existingCustomer.LastActiveAt = DateTime.UtcNow;
+            existingCustomer.SetMetadata("last_profile_update", DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss"));
+            existingCustomer.SetMetadata("updated_fields", string.Join(",", updatedFields));
+            
+            var stripeRelevantFields = updatedFields.Where(field =>
+                field.Equals("FullName", StringComparison.OrdinalIgnoreCase) ||
+                field.Equals("Phone", StringComparison.OrdinalIgnoreCase) ||
+                field.Equals("Metadata", StringComparison.OrdinalIgnoreCase)).ToArray();
+            
+            if (stripeRelevantFields.Any() && !string.IsNullOrWhiteSpace(existingCustomer.StripeCustomerId))
+            {
+                try
+                {
+                    _logger.LogInformation("Syncing profile changes with Stripe for customer {Email}: {Fields}",
+                        existingCustomer.Email, string.Join(", ", stripeRelevantFields));
+                    
+                    var updateRequest = existingCustomer.ToUpdateRequest(stripeRelevantFields);
+                    updateRequest.Email = existingCustomer.Email;
+                    updateRequest.Description = existingCustomer.MetadataJson;
+                    updateRequest.Metadata = existingCustomer.Metadata;
+
+                    await _stripeCustomerService.UpdateCustomerAsync(
+                        existingCustomer.StripeCustomerId,
+                        updateRequest,
+                        cancellationToken);
+
+                    _logger.LogInformation("Successfully synced profile changes with Stripe for customer {Email}",
+                        existingCustomer.Email);
+                    
+                    existingCustomer.RemoveMetadata("stripe_profile_sync_failed");
+                    existingCustomer.SetMetadata("last_stripe_sync", DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss"));
+                    
+                    await SafeUpdateCustomerTableStorageAsync(existingCustomer);
+                }
+                catch (Exception stripeEx)
+                {
+                    _logger.LogError(stripeEx,
+                        "Failed to sync profile changes with Stripe for customer {Email}. Local update aborted.",
+                        existingCustomer.Email);
+                    
+                    existingCustomer.SetMetadata("stripe_profile_sync_failed", DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss"));
+                    existingCustomer.SetMetadata("stripe_sync_error", stripeEx.Message);
+
+                    throw new InvalidOperationException($"Failed to sync customer profile with Stripe: {stripeEx.Message}", stripeEx);
+                }
+            }
+            else
+            {
+                _logger.LogInformation("Performing local-only update for customer: {Email}", existingCustomer.Email);
+                await SafeUpdateCustomerTableStorageAsync(existingCustomer);
+            }
+
+            _logger.LogInformation("Successfully updated customer profile: {Email}", existingCustomer.Email);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating customer profile: {Email}", existingCustomer.Email);
+            throw;
         }
     }
 
@@ -261,7 +335,7 @@ public class CustomerManagementService : ICustomerManagementService
             customer.SetMetadata("updated_fields", string.Join(",", changedFields));
 
             // Update locally first
-            await SafeUpdateCustomerAsync(customer);
+            await SafeUpdateCustomerTableStorageAsync(customer);
 
             // Sync with Stripe only for fields that Stripe manages
             var stripeRelevantFields = changedFields.Where(f =>
@@ -285,7 +359,7 @@ public class CustomerManagementService : ICustomerManagementService
 
                     // Mark for retry
                     customer.SetMetadata("stripe_profile_sync_failed", DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss"));
-                    await SafeUpdateCustomerAsync(customer);
+                    await SafeUpdateCustomerTableStorageAsync(customer);
                 }
             }
 
@@ -331,19 +405,17 @@ public class CustomerManagementService : ICustomerManagementService
         string email,
         CancellationToken cancellationToken)
     {
-        if (stripeCustomer == null && localCustomer == null)
+        switch (stripeCustomer)
         {
-            _logger.LogInformation("Customer not found anywhere: {Email}", email);
-            return null;
+            case null when localCustomer == null:
+                _logger.LogInformation("Customer not found anywhere: {Email}", email);
+                return null;
+            case null:
+                _logger.LogWarning("Customer exists locally but not in Stripe: {Email}", email);
+                return localCustomer;
         }
 
-        if (stripeCustomer == null && localCustomer != null)
-        {
-            _logger.LogWarning("Customer exists locally but not in Stripe: {Email}", email);
-            return localCustomer;
-        }
-
-        if (stripeCustomer != null && localCustomer == null)
+        if (localCustomer == null)
         {
             _logger.LogWarning("Customer exists in Stripe but not locally: {Email}. Creating local record.", email);
 
@@ -387,7 +459,7 @@ public class CustomerManagementService : ICustomerManagementService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error inserting customer: {Email}", customer.Email);
+            _logger.LogError(ex, "Error inserting customer: {Email}", customer?.Email);
             throw;
         }
     }
@@ -395,7 +467,7 @@ public class CustomerManagementService : ICustomerManagementService
     /// <summary>
     /// Safely updates customer with validation and error handling
     /// </summary>
-    private async Task SafeUpdateCustomerAsync(Customer customer)
+    private async Task SafeUpdateCustomerTableStorageAsync(Customer customer)
     {
         try
         {
@@ -417,7 +489,7 @@ public class CustomerManagementService : ICustomerManagementService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating customer: {Email}", customer.Email);
+            _logger.LogError(ex, "Error updating customer: {Email}", customer?.Email);
             throw;
         }
     }
@@ -467,9 +539,9 @@ public class CustomerManagementService : ICustomerManagementService
             localCustomer.SetTableStorageKeys();
 
             // Update in storage
-            await SafeUpdateCustomerAsync(localCustomer);
+            await SafeUpdateCustomerTableStorageAsync(localCustomer);
 
-            _logger.LogInformation("Synced customer data successfully: {Email}", localCustomer.Email);
+            _logger.LogInformation("Synced customer data table storage successfully: {Email}", localCustomer.Email);
             return localCustomer;
         }
         catch (Exception ex)
@@ -557,7 +629,7 @@ public class CustomerManagementService : ICustomerManagementService
 
             try
             {
-                await SafeUpdateCustomerAsync(localCustomer);
+                await SafeUpdateCustomerTableStorageAsync(localCustomer);
             }
             catch (Exception updateEx)
             {

@@ -1,4 +1,5 @@
 ﻿using DesolaDomain.Entities.User;
+using DesolaDomain.Interfaces;
 using DesolaServices.Commands.Requests;
 using DesolaServices.DataTransferObjects.Responses;
 using DesolaServices.Interfaces;
@@ -10,13 +11,15 @@ namespace DesolaServices.Handler.Payments;
 public class UpdateCustomerCommandHandler : IRequestHandler<UpdateCustomerCommand, CustomerUpdateResponse>
 {
     private readonly ICustomerManagementService _customerManagementService;
+    private readonly ICustomerTableService _customerTableService;
     private readonly ILogger<UpdateCustomerCommandHandler> _logger;
     public UpdateCustomerCommandHandler(
         ICustomerManagementService customerManagementService,
-        ILogger<UpdateCustomerCommandHandler> logger)
+        ILogger<UpdateCustomerCommandHandler> logger, ICustomerTableService customerTableService)
     {
         _customerManagementService = customerManagementService ?? throw new ArgumentNullException(nameof(customerManagementService));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _customerTableService = customerTableService ?? throw new ArgumentNullException(nameof(customerTableService));
     }
 
     public async Task<CustomerUpdateResponse> Handle(UpdateCustomerCommand request, CancellationToken cancellationToken)
@@ -40,7 +43,7 @@ public class UpdateCustomerCommandHandler : IRequestHandler<UpdateCustomerComman
             }
 
             // 2. Get existing customer
-            var existingCustomer = await _customerManagementService.GetCustomerAsync(request.Email, cancellationToken);
+            var existingCustomer = await GetCustomerForUpdate(request.Email, cancellationToken);
             if (existingCustomer == null)
             {
                 _logger.LogWarning("Customer not found for email: {Email}", request.Email);
@@ -64,14 +67,7 @@ public class UpdateCustomerCommandHandler : IRequestHandler<UpdateCustomerComman
             }
 
             // 6. Update in local storage and sync with Stripe if needed
-            var success = await _customerManagementService.UpdateCustomerProfileAsync(
-                request.Email,
-                request.FullName,
-                request.Phone,
-                request.PreferredCurrency,
-                request.DefaultOriginAirport,
-                request.Metadata,
-                cancellationToken);
+            var success = await _customerManagementService.UpdateCustomerProfileAsync(updatedCustomer, request.GetUpdatedFields(), cancellationToken);
 
             if (!success) return CustomerUpdateResponse.FailureResult("Failed to update customer");
             updatedCustomer = await _customerManagementService.GetCustomerAsync(request.Email, cancellationToken);
@@ -136,7 +132,7 @@ public class UpdateCustomerCommandHandler : IRequestHandler<UpdateCustomerComman
 
             foreach (var (key, value) in request.Metadata)
             {
-                if (string.IsNullOrWhiteSpace(key)) 
+                if (string.IsNullOrWhiteSpace(key))
                     continue;
                 if (string.IsNullOrEmpty(value))
                 {
@@ -157,5 +153,22 @@ public class UpdateCustomerCommandHandler : IRequestHandler<UpdateCustomerComman
         existingCustomer.SetMetadata("update_source", "admin_portal");
 
         return existingCustomer;
+    }
+
+    private async Task<Customer> GetCustomerForUpdate(string email, CancellationToken cancellationToken)
+    {
+
+        var emailDomain = email.Split('@').LastOrDefault()?.ToLowerInvariant() ?? "unknown";
+        var partitionKey = $"domain_{emailDomain}";
+        var rowKey = email.ToLowerInvariant();
+
+        var localCustomer = await _customerTableService.GetTableEntityAsync(partitionKey, rowKey);
+
+        if (localCustomer?.StripeCustomerId != null)
+        {
+            return await _customerManagementService.GetCustomerByStripeIdAsync(localCustomer.StripeCustomerId, cancellationToken);
+        }
+
+        return localCustomer;
     }
 }
