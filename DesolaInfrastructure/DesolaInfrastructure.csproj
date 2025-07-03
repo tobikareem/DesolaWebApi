@@ -7,15 +7,12 @@
 
 	<ItemGroup>
 		<PackageReference Include="CaptainOath.DataStore" Version="2.0.6" />
-		<PackageReference Include="CaptainPayment" Version="1.0.0" />
-		<PackageReference Include="docfx.console" Version="2.41.0">
-			<ExcludeAssets>build</ExcludeAssets>
-		</PackageReference>
 	</ItemGroup>
 
 
 	<ItemGroup>
     <PackageReference Include="amadeus-dotnet" Version="2.0.0" />
+    <PackageReference Include="CaptainPayment" Version="1.0.0.1" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="9.0.6" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.6" />
     <PackageReference Include="Microsoft.Extensions.Caching.Abstractions" Version="9.0.6" />
