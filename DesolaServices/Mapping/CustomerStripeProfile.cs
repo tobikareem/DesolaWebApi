@@ -130,16 +130,6 @@ public class CustomerStripeProfile : Profile
             .ForMember(dest => dest.DefaultPaymentMethodId, opt => opt.MapFrom(src => string.Empty)) // Not managed locally
             .ForMember(dest => dest.Metadata, opt => opt.MapFrom(src => CreateCustomerMetadata(src)));
 
-        CreateMap<Customer, UpdateCustomerRequest>()
-            .ForMember(dest => dest.Email, opt => opt.MapFrom(src => src.Email))
-            .ForMember(dest => dest.Name, opt => opt.MapFrom(src => src.FullName))
-            .ForMember(dest => dest.Phone, opt => opt.MapFrom(src => src.Phone ?? string.Empty))
-            .ForMember(dest => dest.Description, opt => opt.MapFrom(src => CreateCustomerDescription(src)))
-            .ForMember(dest => dest.Address, opt => opt.MapFrom(src => new CustomerAddress())) // Empty address for now
-            .ForMember(dest => dest.ShippingAddress, opt => opt.MapFrom(src => new CustomerAddress())) // Empty address for now
-            .ForMember(dest => dest.DefaultPaymentMethodId, opt => opt.MapFrom(src => string.Empty)) // Not managed locally
-            .ForMember(dest => dest.Metadata, opt => opt.MapFrom(src => CreateCustomerMetadata(src)));
-
         // Map PagedResult<CustomerResult> to PagedResult<Customer>
         CreateMap<PagedResult<CustomerResult>, PagedResult<Customer>>()
             .ForMember(dest => dest.Data, opt => opt.MapFrom(src => src.Data))

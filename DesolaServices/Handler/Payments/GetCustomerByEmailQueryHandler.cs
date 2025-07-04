@@ -22,7 +22,7 @@ public class GetCustomerByEmailQueryHandler: IRequestHandler<GetCustomerByEmailQ
         var customer = await _customerManagementService.GetCustomerAsync(request.Email, cancellationToken);
         if (customer != null) return customer;
         _logger.LogWarning($"No customer found with email: {request.Email}");
-        return new Customer();
+        return null;
     }
 
 }
