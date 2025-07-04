@@ -11,6 +11,7 @@ using DesolaInfrastructure.Services.Implementations;
 using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
 using CaptainPayment.Extensions;
+using DesolaDomain.Entities.Payment;
 using DesolaInfrastructure.External.Providers.Amadeus;
 using DesolaInfrastructure.External.Providers.Google;
 using DesolaInfrastructure.External.Providers.SkyScanner;
@@ -48,6 +49,9 @@ public static class ServiceCollection
         services.AddScoped<ITableBase<WebSection>, WebPageDesignTableService>();
         services.AddScoped<ITableBase<UserClickTracking>, ClickTrackingTableService>();
         services.AddScoped<ITableBase<UserTravelPreference>, UserPreferenceTableService>();
+        services.AddScoped<ITableBase<DesolaProductDetail>, ProductTableService>();
+        services.AddScoped<ITableBase<DesolaPriceDetail>, PriceTableService>();
+        services.AddScoped<ITableBase<PaymentIntentResult>, PaymentIntentResultTableService>();
         services.AddScoped<ICustomerTableService, CustomerTableService>();
 
         services.AddScoped<AmadeusFlightProvider>();
@@ -80,6 +84,9 @@ public static class ServiceCollection
         services.AddSingleton<ITableStorageRepository<UserTravelPreference>, TableStorageRepository<UserTravelPreference>>();
         services.AddSingleton<ITableStorageRepository<UserClickTracking>, TableStorageRepository<UserClickTracking>>();
         services.AddSingleton<ITableStorageRepository<Customer>, TableStorageRepository<Customer>>();
+        services.AddSingleton<ITableStorageRepository<DesolaProductDetail>, TableStorageRepository<DesolaProductDetail>>();
+        services.AddSingleton<ITableStorageRepository<DesolaPriceDetail>, TableStorageRepository<DesolaPriceDetail>>();
+        services.AddSingleton<ITableStorageRepository<PaymentIntentResult>, TableStorageRepository<PaymentIntentResult>>();
 
         services.AddSingleton(_ =>
         {

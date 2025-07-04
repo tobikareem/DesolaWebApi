@@ -7,7 +7,7 @@
   </PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="CaptainPayment" Version="1.0.0" />
+		<PackageReference Include="CaptainPayment" Version="1.0.0.3" />
 		<PackageReference Include="docfx.console" Version="2.41.0">
 			<ExcludeAssets>build</ExcludeAssets>
 		</PackageReference>
@@ -15,7 +15,7 @@
 
 	<ItemGroup>
     <PackageReference Include="Azure.Data.Tables" Version="12.11.0" />
-    <PackageReference Include="CsvHelper" Version="33.0.1" />
+    <PackageReference Include="CsvHelper" Version="33.1.0" />
 
     <PackageReference Include="amadeus-dotnet" Version="2.0.0" />
   </ItemGroup>

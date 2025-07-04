@@ -17,12 +17,15 @@ public static class ServiceCollection
         services.AddScoped<IAirlineRouteService, AirlineRouteService>();
         services.AddScoped<IAirportScannerService, AirportScannerService>();
         services.AddScoped<ICustomerManagementService, CustomerManagementService>();
+        services.AddScoped<IDesolaSubscriptionService, DesolaSubscriptionService>();
+        services.AddScoped<IDesolaProductAndPriceStorage, DesolaProductAndPriceStorage>();
+        services.AddScoped<IPaymentIntentResultService, PaymentIntentResultService>();
         services.AddScoped<IAuthService, AuthService>();
 
         services.AddMediatR(config => config.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly()));
 
         services.AddAutoMapper(Assembly.GetExecutingAssembly());
-
+        
         services.AddStripePayments(options =>
         {
             options.SecretKey = configuration.Payment.Stripe.SandboxClientSecret; // This is usually the secret key for test mode
