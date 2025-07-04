@@ -10,6 +10,8 @@ using DesolaInfrastructure.Data;
 using DesolaInfrastructure.Services.Implementations;
 using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
+using CaptainPayment.Extensions;
+using DesolaDomain.Entities.Payment;
 using DesolaInfrastructure.External.Providers.Amadeus;
 using DesolaInfrastructure.External.Providers.Google;
 using DesolaInfrastructure.External.Providers.SkyScanner;
@@ -21,14 +23,14 @@ public static class ServiceCollection
 {
     public static IServiceCollection AddDesolaInfrastructure(this IServiceCollection services, AppSettings configuration)
     {
-        services.AddSingleton<IAirportRepository, AirportRepository>();
-        services.AddSingleton<IAirlineRepository, AirlineRepository>();
+        services.AddScoped<IAirportRepository, AirportRepository>();
+        services.AddScoped<IAirlineRepository, AirlineRepository>();
         services.AddSingleton<ICacheService, CacheService>();
 
         var connectionString = configuration.BlobFiles.BlobUri;
 
         var storageAccountConnectionString = configuration.StorageAccount.ConnectionString;
-
+         
         if (string.IsNullOrWhiteSpace(storageAccountConnectionString))
         {
             throw new ArgumentNullException(nameof(storageAccountConnectionString));
@@ -47,6 +49,10 @@ public static class ServiceCollection
         services.AddScoped<ITableBase<WebSection>, WebPageDesignTableService>();
         services.AddScoped<ITableBase<UserClickTracking>, ClickTrackingTableService>();
         services.AddScoped<ITableBase<UserTravelPreference>, UserPreferenceTableService>();
+        services.AddScoped<ITableBase<DesolaProductDetail>, ProductTableService>();
+        services.AddScoped<ITableBase<DesolaPriceDetail>, PriceTableService>();
+        services.AddScoped<ITableBase<PaymentIntentResult>, PaymentIntentResultTableService>();
+        services.AddScoped<ICustomerTableService, CustomerTableService>();
 
         services.AddScoped<AmadeusFlightProvider>();
         services.AddScoped<SkyScannerFlightProvider>();
@@ -58,6 +64,16 @@ public static class ServiceCollection
             serviceProvider.GetRequiredService<SkyScannerFlightProvider>(),
             serviceProvider.GetRequiredService<GoogleFlightProvider>()
         });
+        
+        services.AddStripePayments(options =>
+        {
+            options.SecretKey = configuration.Payment.Stripe.SandboxClientSecret; // This is usually the secret key for test mode
+            options.PublishableKey = configuration.Payment.Stripe.SandboxClientId; // This is usually the publishable key
+            options.WebhookSecret = configuration.Payment.Stripe.WebhookSecret;
+            options.ProviderName = configuration.Payment.Stripe.ProviderName;
+            options.PaymentOptions = configuration.Payment.Stripe.PaymentOptions;
+            options.SubscriptionDefaults = configuration.Payment.Stripe.SubscriptionDefaults;
+        });
 
         return services;
     }
@@ -67,6 +83,10 @@ public static class ServiceCollection
         services.AddSingleton<ITableStorageRepository<WebSection>, TableStorageRepository<WebSection>>();
         services.AddSingleton<ITableStorageRepository<UserTravelPreference>, TableStorageRepository<UserTravelPreference>>();
         services.AddSingleton<ITableStorageRepository<UserClickTracking>, TableStorageRepository<UserClickTracking>>();
+        services.AddSingleton<ITableStorageRepository<Customer>, TableStorageRepository<Customer>>();
+        services.AddSingleton<ITableStorageRepository<DesolaProductDetail>, TableStorageRepository<DesolaProductDetail>>();
+        services.AddSingleton<ITableStorageRepository<DesolaPriceDetail>, TableStorageRepository<DesolaPriceDetail>>();
+        services.AddSingleton<ITableStorageRepository<PaymentIntentResult>, TableStorageRepository<PaymentIntentResult>>();
 
         services.AddSingleton(_ =>
         {

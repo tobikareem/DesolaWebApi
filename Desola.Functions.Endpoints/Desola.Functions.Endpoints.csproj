@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net9.0</TargetFramework>
     <AzureFunctionsVersion>v4</AzureFunctionsVersion>
     <OutputType>Exe</OutputType>
     <ImplicitUsings>enable</ImplicitUsings>
@@ -12,32 +12,28 @@
   </ItemGroup>
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
-    <PackageReference Include="Azure.Data.Tables" Version="12.10.0" />
-    <PackageReference Include="Azure.Identity" Version="1.13.2" />
-    <PackageReference Include="Azure.Storage.Blobs" Version="12.24.0" />
+    <PackageReference Include="Azure.Data.Tables" Version="12.11.0" />
+    <PackageReference Include="Azure.Identity" Version="1.14.1" />
+    <PackageReference Include="Azure.Storage.Blobs" Version="12.24.1" />
     <PackageReference Include="Azure.Storage.Files.Shares" Version="12.22.0" />
     <PackageReference Include="Azure.Storage.Queues" Version="12.22.0" />
-    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.13" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.6" />
     <PackageReference Include="Microsoft.Azure.Functions.Worker" Version="2.0.0" />
     <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.Http" Version="3.3.0" />
-    <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.Http.AspNetCore" Version="1.3.1" />
-    <PackageReference Include="Microsoft.Azure.Functions.Worker.Sdk" Version="1.17.2" />
+    <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.Http.AspNetCore" Version="2.0.2" />
+    <PackageReference Include="Microsoft.Azure.Functions.Worker.Sdk" Version="2.0.5" />
     <PackageReference Include="Microsoft.ApplicationInsights.WorkerService" Version="2.23.0" />
     <PackageReference Include="Microsoft.Azure.Functions.Worker.ApplicationInsights" Version="2.0.0" />
     <PackageReference Include="Microsoft.Azure.WebJobs.Extensions.OpenApi" Version="1.5.1" />
-    <PackageReference Include="Microsoft.Extensions.Azure" Version="1.7.6" />
-    <PackageReference Include="Microsoft.Identity.Web" Version="3.8.4" />
+    <PackageReference Include="Microsoft.Extensions.Azure" Version="1.12.0" />
+    <PackageReference Include="Microsoft.Identity.Web" Version="3.9.4" />
+    <PackageReference Include="Stripe.net" Version="48.2.0" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\DesolaDomain\DesolaDomain.csproj" />
     <ProjectReference Include="..\DesolaInfrastructure\DesolaInfrastructure.csproj" />
     <ProjectReference Include="..\DesolaServices\DesolaServices.csproj" />
   </ItemGroup>
-	<ItemGroup>
-		<PackageReference Include="docfx.console" Version="2.41.0">
-			<ExcludeAssets>build</ExcludeAssets>
-		</PackageReference>
-	</ItemGroup>
 
 	<ItemGroup>
     <None Update="host.json">

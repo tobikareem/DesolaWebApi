@@ -9,7 +9,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Identity.Web;
 
-var host = new HostBuilder()
+ var host = new HostBuilder()
     .ConfigureFunctionsWebApplication()
     .ConfigureAppConfiguration((context, config) =>
     {
@@ -25,11 +25,22 @@ var host = new HostBuilder()
         var appSettings = new AppSettings();
         configuration.Bind(appSettings);
 
-        services.AddSingleton(appSettings);
+        if (appSettings.ExternalApi == null)
+        {
+            var valuesSection = configuration.GetSection("Values");
+            services.Configure<AppSettings>(valuesSection);
+            appSettings = new AppSettings();
+            valuesSection.Bind(appSettings);
+        }
 
+        services.AddSingleton(appSettings);
         services.AddMemoryCache();
-        services.AddApplicationInsightsTelemetryWorkerService();
-        services.ConfigureFunctionsApplicationInsights();
+
+        if (!context.HostingEnvironment.IsDevelopment())
+        {
+            services.AddApplicationInsightsTelemetryWorkerService();
+            services.ConfigureFunctionsApplicationInsights();
+        }
 
         services.AddDesolaInfrastructure(appSettings);
         services.AddDesolaApplications(appSettings);
@@ -37,9 +48,7 @@ var host = new HostBuilder()
         {
             options.AddDefaultPolicy(builder =>
             {
-                builder.WithOrigins("https://desolatravels.com",
-                        "https://www.desolatravels.com",
-                        "http://localhost:5173")
+                builder.WithOrigins("https://desolatravels.com", "https://www.desolatravels.com", "http://localhost:5173")
                     .AllowAnyMethod()
                     .AllowAnyHeader();
             });
@@ -87,7 +96,6 @@ var host = new HostBuilder()
 
         services.AddAuthorization();
 
-    })
-    .Build();
+    }).Build();
 
 host.Run();

@@ -1,17 +1,5 @@
 {
   "dependencies": {
-    "appInsights2": {
-      "secretStore": "AzureAppSettings",
-      "resourceId": "/subscriptions/[parameters('subscriptionId')]/resourceGroups/[parameters('resourceGroupName')]/providers/microsoft.insights/components/DesolaFunctionsEndpoints",
-      "type": "appInsights.azure",
-      "connectionId": "APPLICATIONINSIGHTS_CONNECTION_STRING1",
-      "dynamicId": null
-    },
-    "appInsights1": {
-      "ignored": "true",
-      "type": "appInsights",
-      "connectionId": "APPLICATIONINSIGHTS_CONNECTION_STRING"
-    },
     "appInsights3": {
       "ignored": "true",
       "type": "appInsights",
@@ -29,6 +17,18 @@
       "type": "storage.azure",
       "connectionId": "AzureWebJobsStorage",
       "dynamicId": null
+    },
+    "appInsights2": {
+      "secretStore": "AzureAppSettings",
+      "resourceId": "/subscriptions/[parameters('subscriptionId')]/resourceGroups/[parameters('resourceGroupName')]/providers/microsoft.insights/components/DesolaFunctionsEndpoints",
+      "type": "appInsights.azure",
+      "connectionId": "APPLICATIONINSIGHTS_CONNECTION_STRING1",
+      "dynamicId": null
+    },
+    "appInsights1": {
+      "ignored": "True",
+      "type": "appInsights",
+      "connectionId": "APPLICATIONINSIGHTS_CONNECTION_STRING"
     }
   }
 }
