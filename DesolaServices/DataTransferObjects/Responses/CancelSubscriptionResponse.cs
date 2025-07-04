@@ -8,6 +8,7 @@ public class CancelSubscriptionResponse
     public string Status { get; set; } = string.Empty;
     public DateTime? CancelledAt { get; set; }
     public List<string> Errors { get; set; } = new();
+    public bool IsActive { get; set; }
 
     public static CancelSubscriptionResponse SuccessResult(string subscriptionId, string status, DateTime? cancelledAt)
     {

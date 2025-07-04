@@ -588,243 +588,49 @@ public class Payment
         }
     }
 
-    //[Function("CancelSubscription")]
-    //[OpenApiOperation("CancelSubscription", tags: new[] { "Subscription Management" })]
-    //[OpenApiRequestBody("application/json", typeof(CancelSubscriptionCommand), Required = true, Description = "Subscription cancellation information")]
-    //[OpenApiResponseWithBody(HttpStatusCode.OK, "application/json", typeof(CancelSubscriptionResponse), Description = "Subscription cancelled successfully")]
-    //[OpenApiResponseWithBody(HttpStatusCode.BadRequest, "application/json", typeof(CancelSubscriptionResponse), Description = "Validation failed or cancellation failed")]
-    //[OpenApiResponseWithBody(HttpStatusCode.NotFound, "application/json", typeof(CancelSubscriptionResponse), Description = "Subscription not found")]
-    //public async Task<IActionResult> CancelSubscription(
-    //    [HttpTrigger(AuthorizationLevel.Function, "post", Route = "subscription/cancel")] HttpRequest req,
-    //    CancellationToken cancellationToken)
-    //{
-    //    _logger.LogInformation("Cancel subscription request triggered.");
+    [Function("CancelSubscription")]
+    [OpenApiOperation("CancelSubscription", tags: new[] { "Subscription Management" })]
+    [OpenApiRequestBody("application/json", typeof(CancelSubscriptionCommand), Required = true, Description = "Subscription cancellation information")]
+    [OpenApiResponseWithBody(HttpStatusCode.OK, "application/json", typeof(CancelSubscriptionResponse), Description = "Subscription cancelled successfully")]
+    [OpenApiResponseWithBody(HttpStatusCode.BadRequest, "application/json", typeof(CancelSubscriptionResponse), Description = "Validation failed or cancellation failed")]
+    [OpenApiResponseWithBody(HttpStatusCode.NotFound, "application/json", typeof(CancelSubscriptionResponse), Description = "Subscription not found")]
+    public async Task<IActionResult> CancelSubscription(
+        [HttpTrigger(AuthorizationLevel.Function, "post", Route = "subscription/cancel")] HttpRequest req,
+        CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("Cancel subscription request triggered.");
 
-    //    try
-    //    {
-    //        var requestBody = await new StreamReader(req.Body).ReadToEndAsync(cancellationToken);
-    //        var command = JsonConvert.DeserializeObject<CancelSubscriptionCommand>(requestBody);
+        try
+        {
+            var requestBody = await new StreamReader(req.Body).ReadToEndAsync(cancellationToken);
+            var command = JsonConvert.DeserializeObject<CancelSubscriptionCommand>(requestBody);
 
-    //        if (command == null)
-    //        {
-    //            return new BadRequestObjectResult(CancelSubscriptionResponse.FailureResult("Invalid or missing cancellation data."));
-    //        }
+            if (command == null)
+            {
+                return new BadRequestObjectResult(CancelSubscriptionResponse.FailureResult("Invalid or missing cancellation data."));
+            }
 
-    //        var result = await _mediator.Send(command, cancellationToken);
+            var result = await _mediator.Send(command, cancellationToken);
 
-    //        return result.Success switch
-    //        {
-    //            true => new OkObjectResult(result),
-    //            false when result.Message.Contains("not found") => new NotFoundObjectResult(result),
-    //            false => new BadRequestObjectResult(result)
-    //        };
-    //    }
-    //    catch (JsonException ex)
-    //    {
-    //        _logger.LogError(ex, "Invalid JSON in cancel subscription request");
-    //        return new BadRequestObjectResult(CancelSubscriptionResponse.FailureResult("Invalid JSON format"));
-    //    }
-    //    catch (Exception ex)
-    //    {
-    //        _logger.LogError(ex, "Error processing cancel subscription request");
-    //        return new ObjectResult(CancelSubscriptionResponse.FailureResult("Internal server error"))
-    //        {
-    //            StatusCode = StatusCodes.Status500InternalServerError
-    //        };
-    //    }
-    //}
+            return result.Success
+                ? new OkObjectResult(result)
+                : new BadRequestObjectResult(result);
+        }
+        catch (JsonException ex)
+        {
+            _logger.LogError(ex, "Invalid JSON in cancel subscription request");
+            return new BadRequestObjectResult(CancelSubscriptionResponse.FailureResult("Invalid JSON format"));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error processing cancel subscription request");
+            return new ObjectResult(CancelSubscriptionResponse.FailureResult("Internal server error"))
+            {
+                StatusCode = StatusCodes.Status500InternalServerError
+            };
+        }
+    }
 
-
-    //#region Payment Management
-
-    //[Function("CreatePaymentIntent")]
-    //[OpenApiOperation("CreatePaymentIntent", tags: new[] { "Payment Management" })]
-    //[OpenApiRequestBody("application/json", typeof(CreatePaymentIntentCommand), Required = true, Description = "Payment intent creation information")]
-    //[OpenApiResponseWithBody(HttpStatusCode.OK, "application/json", typeof(CreatePaymentIntentResponse), Description = "Payment intent created successfully")]
-    //[OpenApiResponseWithBody(HttpStatusCode.BadRequest, "application/json", typeof(CreatePaymentIntentResponse), Description = "Validation failed or payment intent creation failed")]
-    //[OpenApiResponseWithBody(HttpStatusCode.InternalServerError, "application/json", typeof(CreatePaymentIntentResponse), Description = "Internal server error")]
-    //public async Task<IActionResult> CreatePaymentIntent(
-    //    [HttpTrigger(AuthorizationLevel.Function, "post", Route = "payment/intent/create")] HttpRequest req,
-    //    CancellationToken cancellationToken)
-    //{
-    //    _logger.LogInformation("Create payment intent request triggered.");
-
-    //    try
-    //    {
-    //        var requestBody = await new StreamReader(req.Body).ReadToEndAsync(cancellationToken);
-    //        var command = JsonConvert.DeserializeObject<CreatePaymentIntentCommand>(requestBody);
-
-    //        if (command == null)
-    //        {
-    //            return new BadRequestObjectResult(CreatePaymentIntentResponse.FailureResult("Invalid or missing payment intent data."));
-    //        }
-
-    //        var result = await _mediator.Send(command, cancellationToken);
-
-    //        return result.Success
-    //            ? new OkObjectResult(result)
-    //            : new BadRequestObjectResult(result);
-    //    }
-    //    catch (JsonException ex)
-    //    {
-    //        _logger.LogError(ex, "Invalid JSON in create payment intent request");
-    //        return new BadRequestObjectResult(CreatePaymentIntentResponse.FailureResult("Invalid JSON format"));
-    //    }
-    //    catch (Exception ex)
-    //    {
-    //        _logger.LogError(ex, "Error processing create payment intent request");
-    //        return new ObjectResult(CreatePaymentIntentResponse.FailureResult("Internal server error"))
-    //        {
-    //            StatusCode = StatusCodes.Status500InternalServerError
-    //        };
-    //    }
-    //}
-
-    //[Function("ConfirmPaymentIntent")]
-    //[OpenApiOperation("ConfirmPaymentIntent", tags: new[] { "Payment Management" })]
-    //[OpenApiRequestBody("application/json", typeof(ConfirmPaymentIntentCommand), Required = true, Description = "Payment intent confirmation information")]
-    //[OpenApiResponseWithBody(HttpStatusCode.OK, "application/json", typeof(ConfirmPaymentIntentResponse), Description = "Payment intent confirmed successfully")]
-    //[OpenApiResponseWithBody(HttpStatusCode.BadRequest, "application/json", typeof(ConfirmPaymentIntentResponse), Description = "Validation failed or confirmation failed")]
-    //[OpenApiResponseWithBody(HttpStatusCode.NotFound, "application/json", typeof(ConfirmPaymentIntentResponse), Description = "Payment intent not found")]
-    //public async Task<IActionResult> ConfirmPaymentIntent(
-    //    [HttpTrigger(AuthorizationLevel.Function, "post", Route = "payment/intent/confirm")] HttpRequest req,
-    //    CancellationToken cancellationToken)
-    //{
-    //    _logger.LogInformation("Confirm payment intent request triggered.");
-
-    //    try
-    //    {
-    //        var requestBody = await new StreamReader(req.Body).ReadToEndAsync(cancellationToken);
-    //        var command = JsonConvert.DeserializeObject<ConfirmPaymentIntentCommand>(requestBody);
-
-    //        if (command == null)
-    //        {
-    //            return new BadRequestObjectResult(ConfirmPaymentIntentResponse.FailureResult("Invalid or missing confirmation data."));
-    //        }
-
-    //        var result = await _mediator.Send(command, cancellationToken);
-
-    //        return result.Success switch
-    //        {
-    //            true => new OkObjectResult(result),
-    //            false when result.Message.Contains("not found") => new NotFoundObjectResult(result),
-    //            false => new BadRequestObjectResult(result)
-    //        };
-    //    }
-    //    catch (JsonException ex)
-    //    {
-    //        _logger.LogError(ex, "Invalid JSON in confirm payment intent request");
-    //        return new BadRequestObjectResult(ConfirmPaymentIntentResponse.FailureResult("Invalid JSON format"));
-    //    }
-    //    catch (Exception ex)
-    //    {
-    //        _logger.LogError(ex, "Error processing confirm payment intent request");
-    //        return new ObjectResult(ConfirmPaymentIntentResponse.FailureResult("Internal server error"))
-    //        {
-    //            StatusCode = StatusCodes.Status500InternalServerError
-    //        };
-    //    }
-    //}
-    //[Function("StripeWebhook")]
-    //[OpenApiOperation("StripeWebhook", tags: new[] { "Webhook Management" })]
-    //[OpenApiRequestBody("application/json", typeof(object), Required = true, Description = "Stripe webhook payload")]
-    //[OpenApiResponseWithBody(HttpStatusCode.OK, "application/json", typeof(object), Description = "Webhook processed successfully")]
-    //[OpenApiResponseWithBody(HttpStatusCode.BadRequest, "application/json", typeof(object), Description = "Invalid webhook signature or payload")]
-    //[OpenApiResponseWithBody(HttpStatusCode.InternalServerError, "application/json", typeof(object), Description = "Internal server error")]
-    //public async Task<IActionResult> StripeWebhook(
-    //    [HttpTrigger(AuthorizationLevel.Function, "post", Route = "webhook/stripe")] HttpRequest req,
-    //    CancellationToken cancellationToken)
-    //{
-    //    _logger.LogInformation("Stripe webhook request triggered.");
-
-    //    try
-    //    {
-    //        var requestBody = await new StreamReader(req.Body).ReadToEndAsync(cancellationToken);
-    //        var signature = req.Headers["Stripe-Signature"].FirstOrDefault();
-
-    //        if (string.IsNullOrEmpty(signature))
-    //        {
-    //            _logger.LogWarning("Missing Stripe signature in webhook request");
-    //            return new BadRequestObjectResult(new { error = "Missing Stripe signature" });
-    //        }
-
-    //        var command = new ProcessStripeWebhookCommand
-    //        {
-    //            Payload = requestBody,
-    //            Signature = signature
-    //        };
-
-    //        var result = await _mediator.Send(command, cancellationToken);
-
-    //        return result.Success
-    //            ? new OkObjectResult(new { message = "Webhook processed successfully" })
-    //            : new BadRequestObjectResult(new { error = result.ErrorMessage });
-    //    }
-    //    catch (Exception ex)
-    //    {
-    //        _logger.LogError(ex, "Error processing Stripe webhook");
-    //        return new ObjectResult(new { error = "Internal server error" })
-    //        {
-    //            StatusCode = StatusCodes.Status500InternalServerError
-    //        };
-    //    }
-    //}
-
-    //#endregion
-
-    //#region Health Check
-
-    //[Function("PaymentHealthCheck")]
-    //[OpenApiOperation("PaymentHealthCheck", tags: new[] { "Health Check" })]
-    //[OpenApiResponseWithBody(HttpStatusCode.OK, "application/json", typeof(object), Description = "Service is healthy")]
-    //public async Task<IActionResult> PaymentHealthCheck(
-    //    [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "payment/health")] HttpRequest req)
-    //{
-    //    _logger.LogInformation("Payment health check triggered.");
-
-    //    try
-    //    {
-    //        // You could add more sophisticated health checks here
-    //        // - Database connectivity
-    //        // - Stripe API connectivity
-    //        // - Cache service status
-
-    //        var healthStatus = new
-    //        {
-    //            status = "healthy",
-    //            timestamp = DateTime.UtcNow,
-    //            service = "Desola Payment Service",
-    //            version = "1.0.0",
-    //            dependencies = new
-    //            {
-    //                database = "healthy",
-    //                stripe = "healthy",
-    //                cache = "healthy"
-    //            }
-    //        };
-
-    //        return new OkObjectResult(healthStatus);
-    //    }
-    //    catch (Exception ex)
-    //    {
-    //        _logger.LogError(ex, "Error during health check");
-
-    //        var healthStatus = new
-    //        {
-    //            status = "unhealthy",
-    //            timestamp = DateTime.UtcNow,
-    //            service = "Desola Payment Service",
-    //            error = ex.Message
-    //        };
-
-    //        return new ObjectResult(healthStatus)
-    //        {
-    //            StatusCode = StatusCodes.Status503ServiceUnavailable
-    //        };
-    //    }
-    //}
-
-    //#endregion
 
     private static async Task<(bool authenticationStatus, IActionResult? authenticationResponse)> IsUserAuthenticated(HttpRequest req) => await req.HttpContext.AuthenticateAzureFunctionAsync();
 
