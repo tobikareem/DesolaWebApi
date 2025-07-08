@@ -41,7 +41,7 @@ public class GetBasicFlightSearchQueryHandler : IRequestHandler<GetBasicFlightSe
         var providersToCall = new[]
         {
               _appSettings.ExternalApi.Amadeus.ProviderName,
-             _appSettings.ExternalApi.RapidApi.SkyScannerProviderName,
+            // _appSettings.ExternalApi.RapidApi.SkyScannerProviderName,
             // _appSettings.ExternalApi.RapidApi.GoogleProviderName
         };
 

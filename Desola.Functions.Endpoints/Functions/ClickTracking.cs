@@ -136,12 +136,12 @@ public class ClickTracking
                 return new UnauthorizedResult();
             }
 
-            string origin = req.Query["origin"];
-            string destination = req.Query["destination"];
-            string startDate = req.Query["startDate"];
-            string endDate = req.Query["endDate"];
-            string period = req.Query["period"];
-            string continuationToken = req.Query["pageToken"];
+            string? origin = req.Query["origin"];
+            string? destination = req.Query["destination"];
+            string? startDate = req.Query["startDate"];
+            string? endDate = req.Query["endDate"];
+            string? period = req.Query["period"];
+            string? continuationToken = req.Query["pageToken"];
 
             if (string.IsNullOrEmpty(userId))
             {
@@ -164,10 +164,7 @@ public class ClickTracking
                 pageSize = parsedPageSize;
             }
             
-            var conditions = new List<string> {
-            $"PartitionKey eq '{userId}'"
-
-        };
+            var conditions = new List<string> { $"PartitionKey eq '{userId}'" };
 
             // Add origin filter if provided
             if (!string.IsNullOrEmpty(origin))

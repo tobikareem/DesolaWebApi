@@ -26,7 +26,7 @@ public class GoogleApiException : Exception
     public string FirstErrorMessage => ErrorResponse?.Errors?.Values.FirstOrDefault() ?? "No details available";
 
     public GoogleApiException(HttpStatusCode statusCode, GoogleErrorResponse errorResponse)
-        : base(errorResponse?.Message ?? "Google API error")
+        : base(errorResponse.Message)
     {
         StatusCode = statusCode;
         ErrorResponse = errorResponse;
