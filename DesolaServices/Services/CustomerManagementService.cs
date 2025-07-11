@@ -592,6 +592,11 @@ public class CustomerManagementService : ICustomerManagementService
             newCustomer.SetTableStorageKeys();
             newCustomer.PrepareForStorage();
 
+            if (string.IsNullOrWhiteSpace(stripeCustomer.Email))
+            {
+                return null; // No customer found in Stripe
+            }
+
             await SafeInsertCustomerAsync(newCustomer);
 
             _logger.LogInformation("Customer created from Stripe data: {Email}", email);
