@@ -56,7 +56,7 @@ public class UpdateCustomerCommandHandler : IRequestHandler<UpdateCustomerComman
                 request.Email, string.Join(", ", updatedFields));
 
             // 4. Apply updates to the customer object
-            var updatedCustomer = ApplyUpdates(existingCustomer, request);
+            var updatedCustomer = ApplyUpdates(existingCustomer, request, out var hasExistingChange);
 
             // 5. Validate the updated customer
             if (!updatedCustomer.IsValid(out var customerValidationErrors))
@@ -64,6 +64,13 @@ public class UpdateCustomerCommandHandler : IRequestHandler<UpdateCustomerComman
                 _logger.LogError("Customer validation failed after applying updates: {Email}. Errors: {Errors}",
                     request.Email, string.Join(", ", customerValidationErrors));
                 return CustomerUpdateResponse.ValidationFailureResult(customerValidationErrors);
+            }
+
+            // If no changes were made, return success without further processing
+            if (!hasExistingChange)
+            {
+                _logger.LogInformation("No changes detected for customer {Email}. No update needed.", request.Email);
+                return CustomerUpdateResponse.SuccessResult(updatedCustomer, updatedFields);
             }
 
             // 6. Update in local storage and sync with Stripe if needed
@@ -96,7 +103,7 @@ public class UpdateCustomerCommandHandler : IRequestHandler<UpdateCustomerComman
         }
     }
 
-    private static Customer ApplyUpdates(Customer existingCustomer, UpdateCustomerCommand request)
+    private static Customer ApplyUpdates(Customer existingCustomer, UpdateCustomerCommand request, out bool hasUpdate)
     {
         if (existingCustomer == null)
             throw new ArgumentNullException(nameof(existingCustomer));
@@ -104,25 +111,30 @@ public class UpdateCustomerCommandHandler : IRequestHandler<UpdateCustomerComman
         if (request == null)
             throw new ArgumentNullException(nameof(request));
 
+        hasUpdate = false;
         // Only update fields that are provided (not null/empty)
-        if (!string.IsNullOrWhiteSpace(request.FullName))
+        if (!string.IsNullOrWhiteSpace(request.FullName) && !string.Equals(existingCustomer.FullName.Trim(), request.FullName.Trim(), StringComparison.CurrentCultureIgnoreCase))
         {
             existingCustomer.FullName = request.FullName.Trim();
+            hasUpdate = true;
         }
 
-        if (!string.IsNullOrWhiteSpace(request.Phone))
+        if (!string.IsNullOrWhiteSpace(request.Phone) && !string.Equals(existingCustomer.Phone.Trim(), request.Phone.Trim(), StringComparison.CurrentCultureIgnoreCase))
         {
             existingCustomer.Phone = request.Phone.Trim();
+            hasUpdate = true;
         }
 
-        if (!string.IsNullOrWhiteSpace(request.PreferredCurrency))
+        if (!string.IsNullOrWhiteSpace(request.PreferredCurrency) && !string.Equals(existingCustomer.PreferredCurrency.Trim(), request.PreferredCurrency.Trim(), StringComparison.CurrentCultureIgnoreCase))
         {
             existingCustomer.PreferredCurrency = request.PreferredCurrency.Trim().ToUpperInvariant();
+            hasUpdate = true;
         }
 
-        if (!string.IsNullOrWhiteSpace(request.DefaultOriginAirport))
+        if (!string.IsNullOrWhiteSpace(request.DefaultOriginAirport) && !string.Equals(existingCustomer.DefaultOriginAirport.Trim(), request.DefaultOriginAirport.Trim(), StringComparison.CurrentCultureIgnoreCase))
         {
             existingCustomer.DefaultOriginAirport = request.DefaultOriginAirport.Trim().ToUpperInvariant();
+            hasUpdate = true;
         }
 
         // Handle metadata updates
@@ -145,6 +157,7 @@ public class UpdateCustomerCommandHandler : IRequestHandler<UpdateCustomerComman
             }
 
             existingCustomer.Metadata = currentMetadata;
+            hasUpdate = true;
         }
 
         // Update timestamp and metadata

@@ -207,6 +207,9 @@ public class CustomerManagementService : ICustomerManagementService
             var stripeRelevantFields = updatedFields.Where(field =>
                 field.Equals("FullName", StringComparison.OrdinalIgnoreCase) ||
                 field.Equals("Phone", StringComparison.OrdinalIgnoreCase) ||
+                field.Equals("Email", StringComparison.OrdinalIgnoreCase) ||
+                field.Equals("Description", StringComparison.OrdinalIgnoreCase) ||
+                field.Equals("Address", StringComparison.OrdinalIgnoreCase) ||
                 field.Equals("Metadata", StringComparison.OrdinalIgnoreCase)).ToArray();
             
             if (stripeRelevantFields.Any() && !string.IsNullOrWhiteSpace(existingCustomer.StripeCustomerId))
@@ -218,7 +221,6 @@ public class CustomerManagementService : ICustomerManagementService
                     
                     var updateRequest = existingCustomer.ToUpdateRequest(stripeRelevantFields);
                     updateRequest.Email = existingCustomer.Email;
-                    updateRequest.Description = existingCustomer.MetadataJson;
                     updateRequest.Metadata = existingCustomer.Metadata;
 
                     await _stripeCustomerService.UpdateCustomerAsync(
