@@ -28,43 +28,68 @@ public class CancelSubscriptionCommandHandler : IRequestHandler<CancelSubscripti
 
         try
         {
-            var subscription = await _subscriptionService.GetSubscriptionAsync(request.StripeCustomerId, cancellationToken);
-            
-            if (subscription.Status == "canceled" || subscription.Status == "incomplete_expired")
+            var subscriptions = await _subscriptionService.GetCustomerSubscriptionsAsync(request.StripeCustomerId, cancellationToken);
+
+            var subscriptionDetailsEnumerable = subscriptions.ToList();
+            if (!subscriptionDetailsEnumerable.Any())
             {
-                _logger.LogInformation("Subscription already canceled: {SubscriptionId}", request.StripeCustomerId);
-                return new CancelSubscriptionResponse
-                {
-                    SubscriptionId = request.StripeCustomerId,
-                    Status = subscription.Status,
-                    Success = true,
-                    IsActive = false,
-                    Message = "Subscription was already canceled"
-                };
+                _logger.LogWarning("No subscriptions found for customer: {StripeCustomerId}", request.StripeCustomerId);
+                return CancelSubscriptionResponse.FailureResult("No subscriptions found for this customer");
             }
 
-            // Step 3: Get customer information for our records
+            var activeSubscriptions = subscriptionDetailsEnumerable.Where(s =>
+                s.Status == "active" ||
+                s.Status == "trialing" ||
+                s.Status == "past_due").ToList();
+
+            if (!activeSubscriptions.Any())
+            {
+                _logger.LogInformation("No active subscriptions found for customer: {StripeCustomerId}", request.StripeCustomerId);
+                return CancelSubscriptionResponse.SuccessResult(null, "No active subscriptions to cancel", null);
+            }
+
             Customer customer = null;
             if (!string.IsNullOrEmpty(request.StripeCustomerId))
             {
-                customer = await _subscribedCustomer.GetCustomerByStripeIdAsync(subscription.CustomerId, cancellationToken);
+                customer = await _subscribedCustomer.GetCustomerByStripeIdAsync(request.StripeCustomerId, cancellationToken);
             }
 
-            // Step 4: Cancel subscription via Stripe
-            var cancelResult = await _subscriptionService.CancelSubscriptionAsync(request.StripeCustomerId, request.CancelAtPeriodEnd, cancellationToken);
+            CancelSubscriptionResult lastCancelResult = null;
+            var canceledSubscriptions = new List<string>();
 
-            // Step 5: Update customer subscription status in our database
-            if (customer != null)
+            foreach (var subscription in activeSubscriptions)
             {
-                await UpdateCustomerSubscriptionStatus(customer, cancelResult, request.CancelAtPeriodEnd, cancellationToken);
+                try
+                {
+                    var cancelResult = await _subscriptionService.CancelSubscriptionAsync(subscription.Id, !request.CancelAtPeriodEnd, cancellationToken);
+
+                    lastCancelResult = cancelResult;
+                    canceledSubscriptions.Add(subscription.Id);
+
+                    _logger.LogInformation("Successfully canceled subscription: {SubscriptionId}, Status: {Status}", subscription.Id, cancelResult.Status);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to cancel subscription: {SubscriptionId}", subscription.Id);
+                    // Continue with other subscriptions
+                }
             }
-            
-            
 
-            _logger.LogInformation("Successfully processed subscription cancellation: {SubscriptionId}, Status: {Status}",
-                request.StripeCustomerId, cancelResult.Status);
+            if (!canceledSubscriptions.Any())
+            {
+                _logger.LogError("Failed to cancel any subscriptions for customer: {StripeCustomerId}", request.StripeCustomerId);
+                return CancelSubscriptionResponse.FailureResult("Failed to cancel subscriptions");
+            }
 
-            return CancelSubscriptionResponse.SuccessResult(customer?.CurrentSubscriptionId, cancelResult.Status, customer?.SubscriptionExpiresAt);
+            if (customer != null && lastCancelResult != null)
+            {
+                await UpdateCustomerSubscriptionStatus(customer, lastCancelResult, request.CancelAtPeriodEnd, cancellationToken);
+            }
+
+            _logger.LogInformation("Successfully processed subscription cancellation for customer: {StripeCustomerId}, Canceled subscriptions: {Count}",
+                request.StripeCustomerId, canceledSubscriptions.Count);
+
+            return CancelSubscriptionResponse.SuccessResult(canceledSubscriptions.FirstOrDefault(), lastCancelResult?.Status ?? "canceled", customer?.SubscriptionExpiresAt ?? DateTime.UtcNow);
         }
         catch (Exception ex)
         {
@@ -81,7 +106,7 @@ public class CancelSubscriptionCommandHandler : IRequestHandler<CancelSubscripti
             {
                 // Keep subscription active until period end
                 customer.HasActiveSubscription = true;
-                customer.SubscriptionExpiresAt = cancelResult.CanceledAt;
+                customer.SubscriptionExpiresAt = cancelResult.CanceledAt ?? DateTime.UtcNow.AddDays(30);
             }
             else
             {
