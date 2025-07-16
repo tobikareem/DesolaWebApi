@@ -270,6 +270,156 @@ public class Payment
         }
     }
 
+    [Function("CreateSubscriptionDirect")]
+    [OpenApiOperation("CreateSubscriptionDirect", tags: new[] { "Subscription Management" })]
+    [OpenApiRequestBody("application/json", typeof(CreateDirectSubscriptionCommand), Required = true)]
+    [OpenApiResponseWithBody(HttpStatusCode.OK, "application/json", typeof(CreateSubscriptionResult))]
+    public async Task<IActionResult> CreateSubscriptionDirect(
+        [HttpTrigger(AuthorizationLevel.Function, "post", Route = "subscription/create-direct")] HttpRequest req,
+        CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("Direct subscription creation request triggered.");
+
+        try
+        {
+            var requestBody = await new StreamReader(req.Body).ReadToEndAsync(cancellationToken);
+            var command = JsonConvert.DeserializeObject<CreateDirectSubscriptionCommand>(requestBody);
+
+            if (command == null)
+            {
+                return new BadRequestObjectResult(new { error = "Invalid subscription data" });
+            }
+
+            var isAuthenticated = await IsUserAuthenticated(req);
+
+            if (!isAuthenticated.authenticationStatus)
+            {
+                return isAuthenticated.authenticationResponse!;
+            }
+
+            req.HttpContext.VerifyUserHasAnyAcceptedScope("Files.Read");
+          
+            command.UserId = req.HttpContext.User.Identity is { IsAuthenticated: true } ? req.HttpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value : null; // 78af2b87-6e98-4eec-91ba-2d12d36e71c3
+
+
+            var result = await _mediator.Send(command, cancellationToken);
+            return new OkObjectResult(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating direct subscription");
+            return new ObjectResult(new { error = ex.Message })
+            {
+                StatusCode = StatusCodes.Status500InternalServerError
+            };
+        }
+    }
+
+    [Function("CancelSubscription")]
+    [OpenApiOperation("CancelSubscription", tags: new[] { "Subscription Management" })]
+    [OpenApiRequestBody("application/json", typeof(CancelSubscriptionCommand), Required = true, Description = "Subscription cancellation information")]
+    [OpenApiResponseWithBody(HttpStatusCode.OK, "application/json", typeof(CancelSubscriptionResponse), Description = "Subscription cancelled successfully")]
+    [OpenApiResponseWithBody(HttpStatusCode.BadRequest, "application/json", typeof(CancelSubscriptionResponse), Description = "Validation failed or cancellation failed")]
+    [OpenApiResponseWithBody(HttpStatusCode.NotFound, "application/json", typeof(CancelSubscriptionResponse), Description = "Subscription not found")]
+    public async Task<IActionResult> CancelSubscription(
+        [HttpTrigger(AuthorizationLevel.Function, "post", Route = "subscription/cancel")] HttpRequest req,
+        CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("Cancel subscription request triggered.");
+
+        try
+        {
+            var requestBody = await new StreamReader(req.Body).ReadToEndAsync(cancellationToken);
+            var command = JsonConvert.DeserializeObject<CancelSubscriptionCommand>(requestBody);
+
+            if (command == null)
+            {
+                return new BadRequestObjectResult(CancelSubscriptionResponse.FailureResult("Invalid or missing cancellation data."));
+            }
+
+            var result = await _mediator.Send(command, cancellationToken);
+
+            return result.Success
+                ? new OkObjectResult(result)
+                : new BadRequestObjectResult(result);
+        }
+        catch (JsonException ex)
+        {
+            _logger.LogError(ex, "Invalid JSON in cancel subscription request");
+            return new BadRequestObjectResult(CancelSubscriptionResponse.FailureResult("Invalid JSON format"));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error processing cancel subscription request");
+            return new ObjectResult(CancelSubscriptionResponse.FailureResult("Internal server error"))
+            {
+                StatusCode = StatusCodes.Status500InternalServerError
+            };
+        }
+    }
+
+    [Function("GetCustomerSubscription")]
+    [OpenApiOperation("GetCustomerSubscription", tags: new[] { "Customer", "Subscription" })]
+    [OpenApiParameter("email", In = Microsoft.OpenApi.Models.ParameterLocation.Query, Required = false, Type = typeof(string), Description = "Customer email address")]
+    [OpenApiParameter("stripeCustomerId", In = Microsoft.OpenApi.Models.ParameterLocation.Query, Required = false, Type = typeof(string), Description = "Stripe customer ID")]
+    [OpenApiParameter("customerId", In = Microsoft.OpenApi.Models.ParameterLocation.Query, Required = false, Type = typeof(string), Description = "Internal customer ID")]
+    [OpenApiResponseWithBody(HttpStatusCode.OK, "application/json", typeof(CustomerSubscriptionResponse), Description = "Returns customer subscription information")]
+    [OpenApiResponseWithBody(HttpStatusCode.NotFound, "application/json", typeof(object), Description = "Customer not found")]
+    [OpenApiResponseWithBody(HttpStatusCode.BadRequest, "application/json", typeof(object), Description = "Invalid request parameters")]
+    public async Task<IActionResult> GetCustomerSubscription(
+        [HttpTrigger(AuthorizationLevel.Function, "get", Route = "customer/subscription")] HttpRequest req,
+        CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("Customer subscription information request triggered.");
+
+        try
+        {
+            var email = req.Query["email"];
+            var stripeCustomerId = req.Query["stripeCustomerId"];
+            var customerId = req.Query["customerId"];
+            
+            if (string.IsNullOrEmpty(email) && string.IsNullOrEmpty(stripeCustomerId) && string.IsNullOrEmpty(customerId))
+            {
+                return new BadRequestObjectResult(new
+                {
+                    Error = "At least one identifier must be provided: email, stripeCustomerId, or customerId"
+                });
+            }
+
+            var request = new GetCustomerSubscriptionRequest
+            {
+                Email = email,
+                StripeCustomerId = stripeCustomerId,
+                CustomerId = customerId
+            };
+
+            var result = await _mediator.Send(new GetCustomerSubscriptionQuery(request), cancellationToken);
+
+            if (result == null)
+            {
+                return new NotFoundObjectResult(new
+                {
+                    Error = "Customer not found",
+                    SearchCriteria = new { email, stripeCustomerId, customerId }
+                });
+            }
+
+            return new OkObjectResult(result);
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogWarning(ex, "Invalid request parameters");
+            return new BadRequestObjectResult(new { Error = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving customer subscription information");
+            return new StatusCodeResult(StatusCodes.Status500InternalServerError);
+        }
+    }
+
+    private static async Task<(bool authenticationStatus, IActionResult? authenticationResponse)> IsUserAuthenticated(HttpRequest req) => await req.HttpContext.AuthenticateAzureFunctionAsync();
+
     [Function("CreateProduct")]
     [OpenApiOperation("CreateProduct", tags: new[] { "Subscription Management" })]
     [OpenApiRequestBody("application/json", typeof(CreateProductRequest), Required = true, Description = "Product creation information")]
@@ -277,8 +427,8 @@ public class Payment
     [OpenApiResponseWithBody(HttpStatusCode.BadRequest, "application/json", typeof(ProductResult), Description = "Validation failed or product creation failed")]
     [OpenApiResponseWithBody(HttpStatusCode.InternalServerError, "application/json", typeof(ProductResult), Description = "Internal server error")]
     public async Task<IActionResult> CreateProduct(
-        [HttpTrigger(AuthorizationLevel.Function, "post", Route = "subscription/product/create")] HttpRequest req,
-        CancellationToken cancellationToken)
+    [HttpTrigger(AuthorizationLevel.Function, "post", Route = "subscription/product/create")] HttpRequest req,
+    CancellationToken cancellationToken)
     {
         _logger.LogInformation("Create product request triggered.");
 
@@ -447,7 +597,7 @@ public class Payment
             var query = new GetSetupIntentQuery(customerId);
             var result = await _mediator.Send(query, cancellationToken);
 
-            if (result == null )
+            if (result == null)
             {
                 _logger.LogInformation("No payment intents found for customer: {CustomerId}", customerId);
                 return new NotFoundObjectResult(new ErrorResponse
@@ -542,96 +692,4 @@ public class Payment
             };
         }
     }
-
-    [Function("CreateSubscriptionDirect")]
-    [OpenApiOperation("CreateSubscriptionDirect", tags: new[] { "Subscription Management" })]
-    [OpenApiRequestBody("application/json", typeof(CreateDirectSubscriptionCommand), Required = true)]
-    [OpenApiResponseWithBody(HttpStatusCode.OK, "application/json", typeof(CreateSubscriptionResult))]
-    public async Task<IActionResult> CreateSubscriptionDirect(
-        [HttpTrigger(AuthorizationLevel.Function, "post", Route = "subscription/create-direct")] HttpRequest req,
-        CancellationToken cancellationToken)
-    {
-        _logger.LogInformation("Direct subscription creation request triggered.");
-
-        try
-        {
-            var requestBody = await new StreamReader(req.Body).ReadToEndAsync(cancellationToken);
-            var command = JsonConvert.DeserializeObject<CreateDirectSubscriptionCommand>(requestBody);
-
-            if (command == null)
-            {
-                return new BadRequestObjectResult(new { error = "Invalid subscription data" });
-            }
-
-            var isAuthenticated = await IsUserAuthenticated(req);
-
-            if (!isAuthenticated.authenticationStatus)
-            {
-                return isAuthenticated.authenticationResponse!;
-            }
-
-            req.HttpContext.VerifyUserHasAnyAcceptedScope("Files.Read");
-          
-            command.UserId = req.HttpContext.User.Identity is { IsAuthenticated: true } ? req.HttpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value : null; // 78af2b87-6e98-4eec-91ba-2d12d36e71c3
-
-
-            var result = await _mediator.Send(command, cancellationToken);
-            return new OkObjectResult(result);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error creating direct subscription");
-            return new ObjectResult(new { error = ex.Message })
-            {
-                StatusCode = StatusCodes.Status500InternalServerError
-            };
-        }
-    }
-
-    [Function("CancelSubscription")]
-    [OpenApiOperation("CancelSubscription", tags: new[] { "Subscription Management" })]
-    [OpenApiRequestBody("application/json", typeof(CancelSubscriptionCommand), Required = true, Description = "Subscription cancellation information")]
-    [OpenApiResponseWithBody(HttpStatusCode.OK, "application/json", typeof(CancelSubscriptionResponse), Description = "Subscription cancelled successfully")]
-    [OpenApiResponseWithBody(HttpStatusCode.BadRequest, "application/json", typeof(CancelSubscriptionResponse), Description = "Validation failed or cancellation failed")]
-    [OpenApiResponseWithBody(HttpStatusCode.NotFound, "application/json", typeof(CancelSubscriptionResponse), Description = "Subscription not found")]
-    public async Task<IActionResult> CancelSubscription(
-        [HttpTrigger(AuthorizationLevel.Function, "post", Route = "subscription/cancel")] HttpRequest req,
-        CancellationToken cancellationToken)
-    {
-        _logger.LogInformation("Cancel subscription request triggered.");
-
-        try
-        {
-            var requestBody = await new StreamReader(req.Body).ReadToEndAsync(cancellationToken);
-            var command = JsonConvert.DeserializeObject<CancelSubscriptionCommand>(requestBody);
-
-            if (command == null)
-            {
-                return new BadRequestObjectResult(CancelSubscriptionResponse.FailureResult("Invalid or missing cancellation data."));
-            }
-
-            var result = await _mediator.Send(command, cancellationToken);
-
-            return result.Success
-                ? new OkObjectResult(result)
-                : new BadRequestObjectResult(result);
-        }
-        catch (JsonException ex)
-        {
-            _logger.LogError(ex, "Invalid JSON in cancel subscription request");
-            return new BadRequestObjectResult(CancelSubscriptionResponse.FailureResult("Invalid JSON format"));
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error processing cancel subscription request");
-            return new ObjectResult(CancelSubscriptionResponse.FailureResult("Internal server error"))
-            {
-                StatusCode = StatusCodes.Status500InternalServerError
-            };
-        }
-    }
-
-
-    private static async Task<(bool authenticationStatus, IActionResult? authenticationResponse)> IsUserAuthenticated(HttpRequest req) => await req.HttpContext.AuthenticateAzureFunctionAsync();
-
 }
