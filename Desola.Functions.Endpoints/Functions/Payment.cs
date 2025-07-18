@@ -1,7 +1,10 @@
+using CaptainPayment.Core.Models;
+using DesolaDomain.Entities.Payment;
 using DesolaServices.Commands.Queries.Payment;
 using DesolaServices.Commands.Requests;
 using DesolaServices.DataTransferObjects.Requests;
 using DesolaServices.DataTransferObjects.Responses;
+using DesolaServices.Interfaces;
 using MediatR;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -9,22 +12,24 @@ using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Attributes;
 using Microsoft.Extensions.Logging;
 using Microsoft.Identity.Web;
+using Microsoft.Identity.Web.Resource;
 using Microsoft.OpenApi.Models;
 using Newtonsoft.Json;
 using System.Net;
 using System.Security.Claims;
-using CaptainPayment.Core.Models;
-using DesolaDomain.Entities.Payment;
-using DesolaServices.Interfaces;
-using Microsoft.Identity.Web.Resource;
+using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Enums;
 
 namespace Desola.Functions.Endpoints.Functions;
 
+/// <summary>
+/// Payment and Subscription Management API endpoints for Desola Flights platform
+/// </summary>
 public class Payment
 {
     private readonly ILogger<Payment> _logger;
     private readonly IMediator _mediator;
     private readonly IDesolaSubscriptionService _desolaSubscriptionService;
+
     public Payment(ILogger<Payment> logger, IMediator mediator, IDesolaSubscriptionService desolaProductAndPriceStorage)
     {
         _logger = logger;
@@ -32,13 +37,47 @@ public class Payment
         _desolaSubscriptionService = desolaProductAndPriceStorage;
     }
 
+    #region Customer Management
 
     [Function("CustomerSignup")]
-    [OpenApiOperation("CustomerSignup", tags: new[] { "Customer Management" })]
-    [OpenApiRequestBody("application/json", typeof(NewUserSignUpCommand), Required = true, Description = "Customer signup information")]
-    [OpenApiResponseWithBody(HttpStatusCode.OK, "application/json", typeof(CustomerSignupResponse), Description = "Customer created successfully")]
-    [OpenApiResponseWithBody(HttpStatusCode.BadRequest, "application/json", typeof(CustomerSignupResponse), Description = "Validation failed or customer already exists")]
-    [OpenApiResponseWithBody(HttpStatusCode.InternalServerError, "application/json", typeof(CustomerSignupResponse), Description = "Internal server error")]
+    [OpenApiOperation(
+        operationId: "CustomerSignup",
+        tags: new[] { "Customer Management" },
+        Summary = "Register a new customer",
+        Description = "Creates a new customer account in the Desola Flights platform. This endpoint handles customer registration with email validation and creates associated Stripe customer records.",
+        Visibility = OpenApiVisibilityType.Important)]
+    [OpenApiSecurity("function_key", SecuritySchemeType.ApiKey, Name = "x-functions-key", In = (OpenApiSecurityLocationType)ParameterLocation.Header)]
+    [OpenApiRequestBody(
+        contentType: "application/json",
+        bodyType: typeof(NewUserSignUpCommand),
+        Required = true,
+        Description = "Customer registration details including email, full name, phone, and preferences",
+        Example = typeof(CustomerSignupRequest))]
+    [OpenApiResponseWithBody(
+        statusCode: HttpStatusCode.OK,
+        contentType: "application/json",
+        bodyType: typeof(CustomerSignupResponse),
+        Summary = "Customer registration successful",
+        Description = "Customer has been successfully registered and Stripe customer account created",
+        Example = typeof(CustomerSignupResponse))]
+    [OpenApiResponseWithBody(
+        statusCode: HttpStatusCode.BadRequest,
+        contentType: "application/json",
+        bodyType: typeof(CustomerSignupResponse),
+        Summary = "Registration failed",
+        Description = "Invalid data provided or customer already exists with the same email")]
+    [OpenApiResponseWithBody(
+        statusCode: HttpStatusCode.Unauthorized,
+        contentType: "application/json",
+        bodyType: typeof(object),
+        Summary = "Authentication required",
+        Description = "Valid authentication token is required to access this endpoint")]
+    [OpenApiResponseWithBody(
+        statusCode: HttpStatusCode.InternalServerError,
+        contentType: "application/json",
+        bodyType: typeof(CustomerSignupResponse),
+        Summary = "Server error",
+        Description = "An unexpected error occurred during customer registration")]
     public async Task<IActionResult> CustomerSignup(
         [HttpTrigger(AuthorizationLevel.Function, "post", Route = "customer/signup")] HttpRequest req,
         CancellationToken cancellationToken)
@@ -64,7 +103,7 @@ public class Payment
 
             req.HttpContext.VerifyUserHasAnyAcceptedScope("Files.Read");
 
-            command.CustomerId = req.HttpContext.User.Identity is { IsAuthenticated: true } ? req.HttpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value : null; // "78af2b87-6e98-4eec-91ba-2d12d36e71c3"
+            command.CustomerId = req.HttpContext.User.Identity is { IsAuthenticated: true } ? req.HttpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value : null;
 
             var result = await _mediator.Send(command, cancellationToken);
 
@@ -88,12 +127,49 @@ public class Payment
     }
 
     [Function("UpdateCustomer")]
-    [OpenApiOperation("UpdateCustomer", tags: new[] { "Customer Management" })]
-    [OpenApiRequestBody("application/json", typeof(UpdateCustomerCommand), Required = true, Description = "Customer update information")]
-    [OpenApiResponseWithBody(HttpStatusCode.OK, "application/json", typeof(CustomerUpdateResponse), Description = "Customer updated successfully")]
-    [OpenApiResponseWithBody(HttpStatusCode.BadRequest, "application/json", typeof(CustomerUpdateResponse), Description = "Validation failed")]
-    [OpenApiResponseWithBody(HttpStatusCode.NotFound, "application/json", typeof(CustomerUpdateResponse), Description = "Customer not found")]
-    [OpenApiResponseWithBody(HttpStatusCode.InternalServerError, "application/json", typeof(CustomerUpdateResponse), Description = "Internal server error")]
+    [OpenApiOperation(
+        operationId: "UpdateCustomer",
+        tags: new[] { "Customer Management" },
+        Summary = "Update customer information",
+        Description = "Updates comprehensive customer profile information including personal details, preferences, and contact information. Supports partial updates.",
+        Visibility = OpenApiVisibilityType.Important)]
+    [OpenApiSecurity("function_key", SecuritySchemeType.ApiKey, Name = "x-functions-key", In = (OpenApiSecurityLocationType)ParameterLocation.Header)]
+    [OpenApiRequestBody(
+        contentType: "application/json",
+        bodyType: typeof(UpdateCustomerCommand),
+        Required = true,
+        Description = "Customer update information. Only provided fields will be updated.",
+        Example = typeof(UpdateCustomerCommand))]
+    [OpenApiResponseWithBody(
+        statusCode: HttpStatusCode.OK,
+        contentType: "application/json",
+        bodyType: typeof(CustomerUpdateResponse),
+        Summary = "Customer updated successfully",
+        Description = "Customer information has been successfully updated")]
+    [OpenApiResponseWithBody(
+        statusCode: HttpStatusCode.BadRequest,
+        contentType: "application/json",
+        bodyType: typeof(CustomerUpdateResponse),
+        Summary = "Invalid update data",
+        Description = "Validation failed due to invalid or missing required fields")]
+    [OpenApiResponseWithBody(
+        statusCode: HttpStatusCode.NotFound,
+        contentType: "application/json",
+        bodyType: typeof(CustomerUpdateResponse),
+        Summary = "Customer not found",
+        Description = "No customer exists with the provided identifier")]
+    [OpenApiResponseWithBody(
+        statusCode: HttpStatusCode.Unauthorized,
+        contentType: "application/json",
+        bodyType: typeof(object),
+        Summary = "Authentication required",
+        Description = "Valid authentication token is required")]
+    [OpenApiResponseWithBody(
+        statusCode: HttpStatusCode.InternalServerError,
+        contentType: "application/json",
+        bodyType: typeof(CustomerUpdateResponse),
+        Summary = "Server error",
+        Description = "An unexpected error occurred during update")]
     public async Task<IActionResult> UpdateCustomer(
         [HttpTrigger(AuthorizationLevel.Function, "put", Route = "customer/update")] HttpRequest req,
         CancellationToken cancellationToken)
@@ -119,7 +195,7 @@ public class Payment
 
             req.HttpContext.VerifyUserHasAnyAcceptedScope("Files.Read");
 
-            command.CustomerId = req.HttpContext.User.Identity is { IsAuthenticated: true } ? req.HttpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value : null; // 78af2b87-6e98-4eec-91ba-2d12d36e71c3
+            command.CustomerId = req.HttpContext.User.Identity is { IsAuthenticated: true } ? req.HttpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value : null;
 
             var result = await _mediator.Send(command, cancellationToken);
 
@@ -146,11 +222,46 @@ public class Payment
     }
 
     [Function("GetCustomer")]
-    [OpenApiOperation("GetCustomer", tags: new[] { "Customer Management" })]
-    [OpenApiParameter(name: "email", In = ParameterLocation.Query, Required = true, Type = typeof(string), Description = "Customer email address")]
-    [OpenApiResponseWithBody(HttpStatusCode.OK, "application/json", typeof(CustomerDto), Description = "Customer found")]
-    [OpenApiResponseWithBody(HttpStatusCode.NotFound, "application/json", typeof(object), Description = "Customer not found")]
-    [OpenApiResponseWithBody(HttpStatusCode.BadRequest, "application/json", typeof(object), Description = "Invalid email provided")]
+    [OpenApiOperation(
+        operationId: "GetCustomer",
+        tags: new[] { "Customer Management" },
+        Summary = "Retrieve customer by email",
+        Description = "Fetches customer profile information using email address. Returns comprehensive customer data including subscription status and preferences.",
+        Visibility = OpenApiVisibilityType.Important)]
+    [OpenApiParameter(
+        name: "email",
+        In = ParameterLocation.Query,
+        Required = true,
+        Type = typeof(string),
+        Description = "Customer's email address (case-insensitive)"
+        )]
+    [OpenApiResponseWithBody(
+        statusCode: HttpStatusCode.OK,
+        contentType: "application/json",
+        bodyType: typeof(CustomerDto),
+        Summary = "Customer found",
+        Description = "Customer profile data retrieved successfully",
+        Example = typeof(CustomerDto))]
+    [OpenApiResponseWithBody(
+        statusCode: HttpStatusCode.NotFound,
+        contentType: "application/json",
+        bodyType: typeof(object),
+        Summary = "Customer not found",
+        Description = "No customer exists with the provided email address")]
+    [OpenApiResponseWithBody(
+        statusCode: HttpStatusCode.BadRequest,
+        contentType: "application/json",
+        bodyType: typeof(object),
+        Summary = "Invalid email",
+        Description = "Email parameter is missing or has invalid format")]
+    [OpenApiResponseWithBody(
+        statusCode: HttpStatusCode.InternalServerError,
+        contentType: "application/json",
+        bodyType: typeof(object),
+        Summary = "Server error",
+        Description = "An unexpected error occurred")]
+    [OpenApiSecurity("x-functions-key", SecuritySchemeType.ApiKey, Name = "x-functions-key", In = (OpenApiSecurityLocationType)ParameterLocation.Header)]
+
     public async Task<IActionResult> GetCustomer(
         [HttpTrigger(AuthorizationLevel.Function, "get", Route = "customer")] HttpRequest req,
         CancellationToken cancellationToken)
@@ -184,13 +295,57 @@ public class Payment
     }
 
     [Function("UpdateCustomerField")]
-    [OpenApiOperation("UpdateCustomerField", tags: new[] { "Customer Management" })]
-    [OpenApiParameter(name: "email", In = ParameterLocation.Path, Required = true, Type = typeof(string), Description = "Customer email address")]
-    [OpenApiParameter(name: "field", In = ParameterLocation.Path, Required = true, Type = typeof(string), Description = "Field to update (fullname, phone, currency, airport)")]
-    [OpenApiRequestBody("application/json", typeof(string), Required = true, Description = "New field value")]
-    [OpenApiResponseWithBody(HttpStatusCode.OK, "application/json", typeof(CustomerUpdateResponse), Description = "Field updated successfully")]
-    [OpenApiResponseWithBody(HttpStatusCode.BadRequest, "application/json", typeof(CustomerUpdateResponse), Description = "Invalid field or value")]
-    [OpenApiResponseWithBody(HttpStatusCode.NotFound, "application/json", typeof(CustomerUpdateResponse), Description = "Customer not found")]
+    [OpenApiOperation(
+        operationId: "UpdateCustomerField",
+        tags: new[] { "Customer Management" },
+        Summary = "Update specific customer field",
+        Description = "Updates a single customer profile field. Useful for targeted updates without sending the entire customer object. Supports atomic field updates.",
+        Visibility = OpenApiVisibilityType.Advanced)]
+    [OpenApiSecurity("function_key", SecuritySchemeType.ApiKey, Name = "x-functions-key", In = (OpenApiSecurityLocationType)ParameterLocation.Header)]
+    [OpenApiParameter(
+        name: "email",
+        In = ParameterLocation.Path,
+        Required = true,
+        Type = typeof(string),
+        Description = "Customer's email address"
+        )]
+    [OpenApiParameter(
+        name: "field",
+        In = ParameterLocation.Path,
+        Required = true,
+        Type = typeof(string),
+        Description = "Field name to update. Supported values: 'fullname', 'name', 'phone', 'currency', 'airport'"
+        )]
+    [OpenApiRequestBody(
+        contentType: "application/json",
+        bodyType: typeof(string),
+        Required = true,
+        Description = "New field value as JSON string"
+        )]
+    [OpenApiResponseWithBody(
+        statusCode: HttpStatusCode.OK,
+        contentType: "application/json",
+        bodyType: typeof(CustomerUpdateResponse),
+        Summary = "Field updated successfully",
+        Description = "The specified field has been updated")]
+    [OpenApiResponseWithBody(
+        statusCode: HttpStatusCode.BadRequest,
+        contentType: "application/json",
+        bodyType: typeof(CustomerUpdateResponse),
+        Summary = "Invalid field or value",
+        Description = "The field name is not supported or the value is invalid")]
+    [OpenApiResponseWithBody(
+        statusCode: HttpStatusCode.NotFound,
+        contentType: "application/json",
+        bodyType: typeof(CustomerUpdateResponse),
+        Summary = "Customer not found",
+        Description = "No customer exists with the provided email")]
+    [OpenApiResponseWithBody(
+        statusCode: HttpStatusCode.Unauthorized,
+        contentType: "application/json",
+        bodyType: typeof(object),
+        Summary = "Authentication required",
+        Description = "Valid authentication token is required")]
     public async Task<IActionResult> UpdateCustomerField(
         [HttpTrigger(AuthorizationLevel.Function, "patch", Route = "customer/{email}/field/{field}")] HttpRequest req,
         string email,
@@ -209,7 +364,6 @@ public class Payment
                 return new BadRequestObjectResult(CustomerUpdateResponse.FailureResult("Field value is required"));
             }
 
-
             var command = new UpdateCustomerCommand
             {
                 Email = email,
@@ -224,7 +378,7 @@ public class Payment
 
             req.HttpContext.VerifyUserHasAnyAcceptedScope("Files.Read");
 
-            command.CustomerId = req.HttpContext.User.Identity is { IsAuthenticated: true } ? req.HttpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value : null; // 78af2b87-6e98-4eec-91ba-2d12d36e71c3
+            command.CustomerId = req.HttpContext.User.Identity is { IsAuthenticated: true } ? req.HttpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value : null;
 
             // Set the specific field based on the parameter
             switch (field.ToLowerInvariant())
@@ -270,102 +424,54 @@ public class Payment
         }
     }
 
-    [Function("CreateSubscriptionDirect")]
-    [OpenApiOperation("CreateSubscriptionDirect", tags: new[] { "Subscription Management" })]
-    [OpenApiRequestBody("application/json", typeof(CreateDirectSubscriptionCommand), Required = true)]
-    [OpenApiResponseWithBody(HttpStatusCode.OK, "application/json", typeof(CreateSubscriptionResult))]
-    public async Task<IActionResult> CreateSubscriptionDirect(
-        [HttpTrigger(AuthorizationLevel.Function, "post", Route = "subscription/create-direct")] HttpRequest req,
-        CancellationToken cancellationToken)
-    {
-        _logger.LogInformation("Direct subscription creation request triggered.");
-
-        try
-        {
-            var requestBody = await new StreamReader(req.Body).ReadToEndAsync(cancellationToken);
-            var command = JsonConvert.DeserializeObject<CreateDirectSubscriptionCommand>(requestBody);
-
-            if (command == null)
-            {
-                return new BadRequestObjectResult(new { error = "Invalid subscription data" });
-            }
-
-            var isAuthenticated = await IsUserAuthenticated(req);
-
-            if (!isAuthenticated.authenticationStatus)
-            {
-                return isAuthenticated.authenticationResponse!;
-            }
-
-            req.HttpContext.VerifyUserHasAnyAcceptedScope("Files.Read");
-          
-            command.UserId = req.HttpContext.User.Identity is { IsAuthenticated: true } ? req.HttpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value : null; // 78af2b87-6e98-4eec-91ba-2d12d36e71c3
-
-
-            var result = await _mediator.Send(command, cancellationToken);
-            return new OkObjectResult(result);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error creating direct subscription");
-            return new ObjectResult(new { error = ex.Message })
-            {
-                StatusCode = StatusCodes.Status500InternalServerError
-            };
-        }
-    }
-
-    [Function("CancelSubscription")]
-    [OpenApiOperation("CancelSubscription", tags: new[] { "Subscription Management" })]
-    [OpenApiRequestBody("application/json", typeof(CancelSubscriptionCommand), Required = true, Description = "Subscription cancellation information")]
-    [OpenApiResponseWithBody(HttpStatusCode.OK, "application/json", typeof(CancelSubscriptionResponse), Description = "Subscription cancelled successfully")]
-    [OpenApiResponseWithBody(HttpStatusCode.BadRequest, "application/json", typeof(CancelSubscriptionResponse), Description = "Validation failed or cancellation failed")]
-    [OpenApiResponseWithBody(HttpStatusCode.NotFound, "application/json", typeof(CancelSubscriptionResponse), Description = "Subscription not found")]
-    public async Task<IActionResult> CancelSubscription(
-        [HttpTrigger(AuthorizationLevel.Function, "post", Route = "subscription/cancel")] HttpRequest req,
-        CancellationToken cancellationToken)
-    {
-        _logger.LogInformation("Cancel subscription request triggered.");
-
-        try
-        {
-            var requestBody = await new StreamReader(req.Body).ReadToEndAsync(cancellationToken);
-            var command = JsonConvert.DeserializeObject<CancelSubscriptionCommand>(requestBody);
-
-            if (command == null)
-            {
-                return new BadRequestObjectResult(CancelSubscriptionResponse.FailureResult("Invalid or missing cancellation data."));
-            }
-
-            var result = await _mediator.Send(command, cancellationToken);
-
-            return result.Success
-                ? new OkObjectResult(result)
-                : new BadRequestObjectResult(result);
-        }
-        catch (JsonException ex)
-        {
-            _logger.LogError(ex, "Invalid JSON in cancel subscription request");
-            return new BadRequestObjectResult(CancelSubscriptionResponse.FailureResult("Invalid JSON format"));
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error processing cancel subscription request");
-            return new ObjectResult(CancelSubscriptionResponse.FailureResult("Internal server error"))
-            {
-                StatusCode = StatusCodes.Status500InternalServerError
-            };
-        }
-    }
-
     [Function("GetCustomerSubscription")]
-    [OpenApiOperation("GetCustomerSubscription", tags: new[] { "Customer", "Subscription" })]
-    [OpenApiParameter("email", In = Microsoft.OpenApi.Models.ParameterLocation.Query, Required = false, Type = typeof(string), Description = "Customer email address")]
-    [OpenApiParameter("stripeCustomerId", In = Microsoft.OpenApi.Models.ParameterLocation.Query, Required = false, Type = typeof(string), Description = "Stripe customer ID")]
-    [OpenApiParameter("customerId", In = Microsoft.OpenApi.Models.ParameterLocation.Query, Required = false, Type = typeof(string), Description = "Internal customer ID")]
-    [OpenApiResponseWithBody(HttpStatusCode.OK, "application/json", typeof(CustomerSubscriptionResponse), Description = "Returns customer subscription information")]
-    [OpenApiResponseWithBody(HttpStatusCode.NotFound, "application/json", typeof(object), Description = "Customer not found")]
-    [OpenApiResponseWithBody(HttpStatusCode.BadRequest, "application/json", typeof(object), Description = "Invalid request parameters")]
+    [OpenApiOperation(
+        operationId: "GetCustomerSubscription",
+        tags: new[] { "Customer Management", "Subscription Management" },
+        Summary = "Get customer subscription details",
+        Description = "Retrieves comprehensive subscription information for a customer using multiple identifier options. Returns subscription status, billing details, and plan information.",
+        Visibility = OpenApiVisibilityType.Important)]
+    [OpenApiParameter(
+        name: "email",
+        In = ParameterLocation.Query,
+        Required = false,
+        Type = typeof(string),
+        Description = "Customer's email address"
+        )]
+    [OpenApiParameter(
+        name: "stripeCustomerId",
+        In = ParameterLocation.Query,
+        Required = false,
+        Type = typeof(string),
+        Description = "Stripe customer identifier (starts with 'cus_')"
+        )]
+    [OpenApiParameter(
+        name: "customerId",
+        In = ParameterLocation.Query,
+        Required = false,
+        Type = typeof(string),
+        Description = "Internal customer identifier (GUID)"
+        )]
+    [OpenApiResponseWithBody(
+        statusCode: HttpStatusCode.OK,
+        contentType: "application/json",
+        bodyType: typeof(CustomerSubscriptionResponse),
+        Summary = "Subscription information retrieved",
+        Description = "Customer subscription details including status, plan, and billing information",
+        Example = typeof(CustomerSubscriptionResponse))]
+    [OpenApiResponseWithBody(
+        statusCode: HttpStatusCode.NotFound,
+        contentType: "application/json",
+        bodyType: typeof(object),
+        Summary = "Customer not found",
+        Description = "No customer found with any of the provided identifiers")]
+    [OpenApiResponseWithBody(
+        statusCode: HttpStatusCode.BadRequest,
+        contentType: "application/json",
+        bodyType: typeof(object),
+        Summary = "Missing identifiers",
+        Description = "At least one identifier (email, stripeCustomerId, or customerId) must be provided")]
+    [OpenApiSecurity("x-functions-key", SecuritySchemeType.ApiKey, Name = "x-functions-key", In = (OpenApiSecurityLocationType)ParameterLocation.Header)]
     public async Task<IActionResult> GetCustomerSubscription(
         [HttpTrigger(AuthorizationLevel.Function, "get", Route = "customer/subscription")] HttpRequest req,
         CancellationToken cancellationToken)
@@ -377,7 +483,7 @@ public class Payment
             var email = req.Query["email"];
             var stripeCustomerId = req.Query["stripeCustomerId"];
             var customerId = req.Query["customerId"];
-            
+
             if (string.IsNullOrEmpty(email) && string.IsNullOrEmpty(stripeCustomerId) && string.IsNullOrEmpty(customerId))
             {
                 return new BadRequestObjectResult(new
@@ -418,17 +524,210 @@ public class Payment
         }
     }
 
-    private static async Task<(bool authenticationStatus, IActionResult? authenticationResponse)> IsUserAuthenticated(HttpRequest req) => await req.HttpContext.AuthenticateAzureFunctionAsync();
+    #endregion
+
+    #region Subscription Management
+
+    [Function("CreateSubscriptionDirect")]
+    [OpenApiOperation(
+        operationId: "CreateSubscriptionDirect",
+        tags: new[] { "Subscription Management" },
+        Summary = "Create subscription with payment method",
+        Description = "Creates a new subscription directly with payment method in a single step. Handles customer creation, payment method attachment, and subscription activation with optional trial period.",
+        Visibility = OpenApiVisibilityType.Important)]
+    [OpenApiSecurity("function_key", SecuritySchemeType.ApiKey, Name = "x-functions-key", In = (OpenApiSecurityLocationType)ParameterLocation.Header)]
+    [OpenApiRequestBody(
+        contentType: "application/json",
+        bodyType: typeof(CreateDirectSubscriptionCommand),
+        Required = true,
+        Description = "Subscription creation request with customer details, payment method, and plan selection",
+        Example = typeof(CreateDirectSubscriptionCommand))]
+    [OpenApiResponseWithBody(
+        statusCode: HttpStatusCode.OK,
+        contentType: "application/json",
+        bodyType: typeof(CreateSubscriptionResult),
+        Summary = "Subscription created successfully",
+        Description = "Subscription has been created and activated. May require additional authentication.",
+        Example = typeof(CreateSubscriptionResult))]
+    [OpenApiResponseWithBody(
+        statusCode: HttpStatusCode.BadRequest,
+        contentType: "application/json",
+        bodyType: typeof(object),
+        Summary = "Invalid subscription data",
+        Description = "Required fields are missing or payment method is invalid")]
+    [OpenApiResponseWithBody(
+        statusCode: HttpStatusCode.PaymentRequired,
+        contentType: "application/json",
+        bodyType: typeof(CreateSubscriptionResult),
+        Summary = "Payment authentication required",
+        Description = "Subscription created but requires additional payment authentication (3D Secure)")]
+    [OpenApiResponseWithBody(
+        statusCode: HttpStatusCode.Unauthorized,
+        contentType: "application/json",
+        bodyType: typeof(object),
+        Summary = "Authentication required",
+        Description = "Valid authentication token is required")]
+    [OpenApiResponseWithBody(
+        statusCode: HttpStatusCode.InternalServerError,
+        contentType: "application/json",
+        bodyType: typeof(object),
+        Summary = "Server error",
+        Description = "Payment processing failed or internal error occurred")]
+    public async Task<IActionResult> CreateSubscriptionDirect(
+        [HttpTrigger(AuthorizationLevel.Function, "post", Route = "subscription/create-direct")] HttpRequest req,
+        CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("Direct subscription creation request triggered.");
+
+        try
+        {
+            var requestBody = await new StreamReader(req.Body).ReadToEndAsync(cancellationToken);
+            var command = JsonConvert.DeserializeObject<CreateDirectSubscriptionCommand>(requestBody);
+
+            if (command == null)
+            {
+                return new BadRequestObjectResult(new { error = "Invalid subscription data" });
+            }
+
+            var isAuthenticated = await IsUserAuthenticated(req);
+
+            if (!isAuthenticated.authenticationStatus)
+            {
+                return isAuthenticated.authenticationResponse!;
+            }
+
+            req.HttpContext.VerifyUserHasAnyAcceptedScope("Files.Read");
+
+            command.UserId = req.HttpContext.User.Identity is { IsAuthenticated: true } ? req.HttpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value : null;
+
+            var result = await _mediator.Send(command, cancellationToken);
+            return new OkObjectResult(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating direct subscription");
+            return new ObjectResult(new { error = ex.Message })
+            {
+                StatusCode = StatusCodes.Status500InternalServerError
+            };
+        }
+    }
+
+    [Function("CancelSubscription")]
+    [OpenApiOperation(
+        operationId: "CancelSubscription",
+        tags: new[] { "Subscription Management" },
+        Summary = "Cancel customer subscription",
+        Description = "Cancels an active subscription with options for immediate or end-of-period cancellation. Supports cancellation reasons for analytics and customer feedback.",
+        Visibility = OpenApiVisibilityType.Important)]
+    [OpenApiRequestBody(
+        contentType: "application/json",
+        bodyType: typeof(CancelSubscriptionCommand),
+        Required = true,
+        Description = "Subscription cancellation details including customer identifier and cancellation preferences",
+        Example = typeof(CancelSubscriptionCommand))]
+    [OpenApiResponseWithBody(
+        statusCode: HttpStatusCode.OK,
+        contentType: "application/json",
+        bodyType: typeof(CancelSubscriptionResponse),
+        Summary = "Subscription cancelled successfully",
+        Description = "Subscription has been cancelled according to the specified preferences",
+        Example = typeof(CancelSubscriptionResponse))]
+    [OpenApiResponseWithBody(
+        statusCode: HttpStatusCode.BadRequest,
+        contentType: "application/json",
+        bodyType: typeof(CancelSubscriptionResponse),
+        Summary = "Cancellation failed",
+        Description = "Invalid cancellation data or subscription cannot be cancelled")]
+    [OpenApiResponseWithBody(
+        statusCode: HttpStatusCode.NotFound,
+        contentType: "application/json",
+        bodyType: typeof(CancelSubscriptionResponse),
+        Summary = "Subscription not found",
+        Description = "No active subscription found for the specified customer")]
+    [OpenApiResponseWithBody(
+        statusCode: HttpStatusCode.InternalServerError,
+        contentType: "application/json",
+        bodyType: typeof(CancelSubscriptionResponse),
+        Summary = "Server error",
+        Description = "An unexpected error occurred during cancellation")]
+    [OpenApiSecurity("x-functions-key", SecuritySchemeType.ApiKey, Name = "x-functions-key", In = (OpenApiSecurityLocationType)ParameterLocation.Header)]
+    public async Task<IActionResult> CancelSubscription(
+        [HttpTrigger(AuthorizationLevel.Function, "post", Route = "subscription/cancel")] HttpRequest req,
+        CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("Cancel subscription request triggered.");
+
+        try
+        {
+            var requestBody = await new StreamReader(req.Body).ReadToEndAsync(cancellationToken);
+            var command = JsonConvert.DeserializeObject<CancelSubscriptionCommand>(requestBody);
+
+            if (command == null)
+            {
+                return new BadRequestObjectResult(CancelSubscriptionResponse.FailureResult("Invalid or missing cancellation data."));
+            }
+
+            var result = await _mediator.Send(command, cancellationToken);
+
+            return result.Success
+                ? new OkObjectResult(result)
+                : new BadRequestObjectResult(result);
+        }
+        catch (JsonException ex)
+        {
+            _logger.LogError(ex, "Invalid JSON in cancel subscription request");
+            return new BadRequestObjectResult(CancelSubscriptionResponse.FailureResult("Invalid JSON format"));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error processing cancel subscription request");
+            return new ObjectResult(CancelSubscriptionResponse.FailureResult("Internal server error"))
+            {
+                StatusCode = StatusCodes.Status500InternalServerError
+            };
+        }
+    }
+
+    #endregion
+
+    #region Product and Pricing Management
 
     [Function("CreateProduct")]
-    [OpenApiOperation("CreateProduct", tags: new[] { "Subscription Management" })]
-    [OpenApiRequestBody("application/json", typeof(CreateProductRequest), Required = true, Description = "Product creation information")]
-    [OpenApiResponseWithBody(HttpStatusCode.OK, "application/json", typeof(ProductResult), Description = "Product created successfully")]
-    [OpenApiResponseWithBody(HttpStatusCode.BadRequest, "application/json", typeof(ProductResult), Description = "Validation failed or product creation failed")]
-    [OpenApiResponseWithBody(HttpStatusCode.InternalServerError, "application/json", typeof(ProductResult), Description = "Internal server error")]
+    [OpenApiOperation(
+        operationId: "CreateProduct",
+        tags: new[] { "Product Management" },
+        Summary = "Create subscription product",
+        Description = "Creates a new subscription product in the payment system. Products represent the services offered and are required before creating pricing plans.",
+        Visibility = OpenApiVisibilityType.Advanced)]
+    [OpenApiRequestBody(
+        contentType: "application/json",
+        bodyType: typeof(CreateProductRequest),
+        Required = true,
+        Description = "Product creation details including name, description, and metadata",
+        Example = typeof(CreateProductRequest))]
+    [OpenApiResponseWithBody(
+        statusCode: HttpStatusCode.OK,
+        contentType: "application/json",
+        bodyType: typeof(ProductResult),
+        Summary = "Product created successfully",
+        Description = "Product has been created and is ready for price configuration",
+        Example = typeof(ProductResult))]
+    [OpenApiResponseWithBody(
+        statusCode: HttpStatusCode.BadRequest,
+        contentType: "application/json",
+        bodyType: typeof(ProductResult),
+        Summary = "Product creation failed",
+        Description = "Invalid product data or validation failed")]
+    [OpenApiResponseWithBody(
+        statusCode: HttpStatusCode.InternalServerError,
+        contentType: "application/json",
+        bodyType: typeof(ProductResult),
+        Summary = "Server error",
+        Description = "An unexpected error occurred during product creation")]
     public async Task<IActionResult> CreateProduct(
-    [HttpTrigger(AuthorizationLevel.Function, "post", Route = "subscription/product/create")] HttpRequest req,
-    CancellationToken cancellationToken)
+        [HttpTrigger(AuthorizationLevel.Function, "post", Route = "subscription/product/create")] HttpRequest req,
+        CancellationToken cancellationToken)
     {
         _logger.LogInformation("Create product request triggered.");
 
@@ -464,12 +763,43 @@ public class Payment
     }
 
     [Function("CreatePrice")]
-    [OpenApiOperation("CreatePrice", tags: new[] { "Subscription Management" })]
-    [OpenApiRequestBody("application/json", typeof(CreatePriceRequest), Required = true, Description = "Price creation information")]
-    [OpenApiResponseWithBody(HttpStatusCode.OK, "application/json", typeof(PriceResult), Description = "Price created successfully")]
-    [OpenApiResponseWithBody(HttpStatusCode.BadRequest, "application/json", typeof(PriceResult), Description = "Validation failed or price creation failed")]
-    [OpenApiResponseWithBody(HttpStatusCode.NotFound, "application/json", typeof(PriceResult), Description = "Product not found")]
-    [OpenApiResponseWithBody(HttpStatusCode.InternalServerError, "application/json", typeof(PriceResult), Description = "Internal server error")]
+    [OpenApiOperation(
+        operationId: "CreatePrice",
+        tags: new[] { "Product Management" },
+        Summary = "Create product pricing plan",
+        Description = "Creates a new pricing plan for an existing product. Supports various billing intervals, currencies, and pricing models including tiered and per-seat pricing.",
+        Visibility = OpenApiVisibilityType.Advanced)]
+    [OpenApiRequestBody(
+        contentType: "application/json",
+        bodyType: typeof(CreatePriceRequest),
+        Required = true,
+        Description = "Pricing plan configuration including amount, currency, billing interval, and pricing model",
+        Example = typeof(CreatePriceRequest))]
+    [OpenApiResponseWithBody(
+        statusCode: HttpStatusCode.OK,
+        contentType: "application/json",
+        bodyType: typeof(PriceResult),
+        Summary = "Price created successfully",
+        Description = "Pricing plan has been created and is available for subscriptions",
+        Example = typeof(PriceResult))]
+    [OpenApiResponseWithBody(
+        statusCode: HttpStatusCode.BadRequest,
+        contentType: "application/json",
+        bodyType: typeof(PriceResult),
+        Summary = "Price creation failed",
+        Description = "Invalid pricing data or product not found")]
+    [OpenApiResponseWithBody(
+        statusCode: HttpStatusCode.NotFound,
+        contentType: "application/json",
+        bodyType: typeof(PriceResult),
+        Summary = "Product not found",
+        Description = "The specified product does not exist")]
+    [OpenApiResponseWithBody(
+        statusCode: HttpStatusCode.InternalServerError,
+        contentType: "application/json",
+        bodyType: typeof(PriceResult),
+        Summary = "Server error",
+        Description = "An unexpected error occurred during price creation")]
     public async Task<IActionResult> CreatePrice(
         [HttpTrigger(AuthorizationLevel.Function, "post", Route = "subscription/price/create")] HttpRequest req,
         CancellationToken cancellationToken)
@@ -505,12 +835,181 @@ public class Payment
         }
     }
 
+    [Function("GetProduct")]
+    [OpenApiOperation(
+        operationId: "GetProduct",
+        tags: new[] { "Product Management" },
+        Summary = "Retrieve product information",
+        Description = "Fetches detailed information about a specific product including metadata, status, and associated pricing plans.",
+        Visibility = OpenApiVisibilityType.Advanced)]
+    [OpenApiParameter(
+        name: "productId",
+        In = ParameterLocation.Path,
+        Required = true,
+        Type = typeof(string),
+        Description = "Unique product identifier (starts with 'prod_' for Stripe products)")]
+    [OpenApiResponseWithBody(
+        statusCode: HttpStatusCode.OK,
+        contentType: "application/json",
+        bodyType: typeof(DesolaProductDetail),
+        Summary = "Product information retrieved",
+        Description = "Product details including all associated pricing plans",
+        Example = typeof(DesolaProductDetail))]
+    [OpenApiResponseWithBody(
+        statusCode: HttpStatusCode.NotFound,
+        contentType: "application/json",
+        bodyType: typeof(object),
+        Summary = "Product not found",
+        Description = "No product exists with the specified ID")]
+    [OpenApiResponseWithBody(
+        statusCode: HttpStatusCode.BadRequest,
+        contentType: "application/json",
+        bodyType: typeof(object),
+        Summary = "Invalid product ID",
+        Description = "Product ID format is invalid or missing")]
+    public async Task<IActionResult> GetProduct(
+        [HttpTrigger(AuthorizationLevel.Function, "get", Route = "subscription/product/{productId}")] HttpRequest req,
+        string productId,
+        CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("Get product request triggered for product: {ProductId}", productId);
+
+        try
+        {
+            if (string.IsNullOrWhiteSpace(productId))
+            {
+                return new BadRequestObjectResult(new { error = "Product ID is required" });
+            }
+
+            var result = await _desolaSubscriptionService.GetProductAsync(productId, cancellationToken);
+
+            return result != null
+                ? new OkObjectResult(result)
+                : new NotFoundObjectResult(new { error = $"Product with ID '{productId}' not found" });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error processing get product request for product: {ProductId}", productId);
+            return new ObjectResult(new { error = "Internal server error" })
+            {
+                StatusCode = StatusCodes.Status500InternalServerError
+            };
+        }
+    }
+
+    [Function("GetProductPrices")]
+    [OpenApiOperation(
+        operationId: "GetProductPrices",
+        tags: new[] { "Product Management" },
+        Summary = "Get product pricing plans",
+        Description = "Retrieves all pricing plans associated with a specific product. Supports filtering for active prices only.",
+        Visibility = OpenApiVisibilityType.Advanced)]
+    [OpenApiParameter(
+        name: "productId",
+        In = ParameterLocation.Path,
+        Required = true,
+        Type = typeof(string),
+        Description = "Product identifier to retrieve prices for"
+        )]
+    [OpenApiParameter(
+        name: "activeOnly",
+        In = ParameterLocation.Query,
+        Required = false,
+        Type = typeof(bool),
+        Description = "Filter to return only active pricing plans (default: true)"
+        )]
+    [OpenApiResponseWithBody(
+        statusCode: HttpStatusCode.OK,
+        contentType: "application/json",
+        bodyType: typeof(List<DesolaPriceDetail>),
+        Summary = "Pricing plans retrieved",
+        Description = "List of pricing plans for the specified product",
+        Example = typeof(List<DesolaPriceDetail>))]
+    [OpenApiResponseWithBody(
+        statusCode: HttpStatusCode.NotFound,
+        contentType: "application/json",
+        bodyType: typeof(object),
+        Summary = "Product not found",
+        Description = "No product exists with the specified ID")]
+    [OpenApiResponseWithBody(
+        statusCode: HttpStatusCode.BadRequest,
+        contentType: "application/json",
+        bodyType: typeof(object),
+        Summary = "Invalid product ID",
+        Description = "Product ID format is invalid or missing")]
+    public async Task<IActionResult> GetProductPrices(
+        [HttpTrigger(AuthorizationLevel.Function, "get", Route = "subscription/product/{productId}/prices")] HttpRequest req,
+        string productId,
+        CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("Get product prices request triggered for product: {ProductId}", productId);
+
+        try
+        {
+            if (string.IsNullOrWhiteSpace(productId))
+            {
+                return new BadRequestObjectResult(new { error = "Product ID is required" });
+            }
+
+            var activeOnly = !bool.TryParse(req.Query["activeOnly"], out var active) || active;
+
+            var result = await _desolaSubscriptionService.GetProductPricesAsync(productId, activeOnly, cancellationToken);
+
+            return new OkObjectResult(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error processing get product prices request for product: {ProductId}", productId);
+            return new ObjectResult(new { error = "Internal server error" })
+            {
+                StatusCode = StatusCodes.Status500InternalServerError
+            };
+        }
+    }
+
+    #endregion
+
+    #region Payment Intent Management
+
     [Function("CreatePaymentIntent")]
-    [OpenApiOperation("CreatePaymentIntent", tags: new[] { "Subscription Management" })]
-    [OpenApiRequestBody("application/json", typeof(CreateSetupIntentCommand), Required = true, Description = "Payment Intent creation information")]
-    [OpenApiResponseWithBody(HttpStatusCode.OK, "application/json", typeof(SetupIntentResult), Description = "Payment Intent created successfully")]
-    [OpenApiResponseWithBody(HttpStatusCode.BadRequest, "application/json", typeof(object), Description = "Validation failed")]
-    [OpenApiResponseWithBody(HttpStatusCode.InternalServerError, "application/json", typeof(object), Description = "Internal server error")]
+    [OpenApiOperation(
+        operationId: "CreatePaymentIntent",
+        tags: new[] { "Payment Management" },
+        Summary = "Create payment setup intent",
+        Description = "Creates a setup intent for collecting and storing payment methods for future subscription payments. Used for card validation and storage without immediate charges.",
+        Visibility = OpenApiVisibilityType.Advanced)]
+    [OpenApiSecurity("function_key", SecuritySchemeType.ApiKey, Name = "x-functions-key", In = (OpenApiSecurityLocationType)ParameterLocation.Header)]
+    [OpenApiRequestBody(
+        contentType: "application/json",
+        bodyType: typeof(CreateSetupIntentCommand),
+        Required = true,
+        Description = "Setup intent creation details for payment method collection",
+        Example = typeof(CreateSetupIntentRequest))]
+    [OpenApiResponseWithBody(
+        statusCode: HttpStatusCode.OK,
+        contentType: "application/json",
+        bodyType: typeof(SetupIntentResult),
+        Summary = "Setup intent created successfully",
+        Description = "Setup intent is ready for payment method collection",
+        Example = typeof(SetupIntentResult))]
+    [OpenApiResponseWithBody(
+        statusCode: HttpStatusCode.BadRequest,
+        contentType: "application/json",
+        bodyType: typeof(object),
+        Summary = "Invalid setup intent data",
+        Description = "Required fields are missing or invalid")]
+    [OpenApiResponseWithBody(
+        statusCode: HttpStatusCode.Unauthorized,
+        contentType: "application/json",
+        bodyType: typeof(object),
+        Summary = "Authentication required",
+        Description = "Valid authentication token is required")]
+    [OpenApiResponseWithBody(
+        statusCode: HttpStatusCode.InternalServerError,
+        contentType: "application/json",
+        bodyType: typeof(object),
+        Summary = "Server error",
+        Description = "An unexpected error occurred")]
     public async Task<IActionResult> CreatePaymentIntentSetup(
         [HttpTrigger(AuthorizationLevel.Function, "post", Route = "subscription/paymentIntent/create")] HttpRequest req,
         CancellationToken cancellationToken)
@@ -536,14 +1035,13 @@ public class Payment
 
             req.HttpContext.VerifyUserHasAnyAcceptedScope("Files.Read");
 
-
             var command = JsonConvert.DeserializeObject<CreateSetupIntentCommand>(requestBody);
 
             if (command == null)
             {
                 return new BadRequestObjectResult("Invalid or missing payment intent data.");
             }
-            command.UserId = req.HttpContext.User.Identity is { IsAuthenticated: true } ? req.HttpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value : null; // 78af2b87-6e98-4eec-91ba-2d12d36e71c3
+            command.UserId = req.HttpContext.User.Identity is { IsAuthenticated: true } ? req.HttpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value : null;
 
             var result = await _mediator.Send(command, cancellationToken);
 
@@ -565,20 +1063,52 @@ public class Payment
     }
 
     [Function("GetCustomerPaymentIntents")]
-    [OpenApiOperation("GetCustomerPaymentIntents", tags: new[] { "Subscription Management" })]
-    [OpenApiParameter(name: "customerId", In = ParameterLocation.Query, Required = true, Type = typeof(string), Description = "Customer ID to retrieve payment intents for")]
-    [OpenApiResponseWithBody(HttpStatusCode.OK, "application/json", typeof(PaymentIntentResult), Description = "Payment intents found")]
-    [OpenApiResponseWithBody(HttpStatusCode.NotFound, "application/json", typeof(ErrorResponse), Description = "Customer not found")]
-    [OpenApiResponseWithBody(HttpStatusCode.BadRequest, "application/json", typeof(ErrorResponse), Description = "Invalid request parameters")]
-    [OpenApiResponseWithBody(HttpStatusCode.InternalServerError, "application/json", typeof(ErrorResponse), Description = "Internal server error")]
-    public async Task<IActionResult> GetCustomerPaymentIntents([HttpTrigger(AuthorizationLevel.Function, "get", Route = "subscription/paymentIntent")] HttpRequest req, CancellationToken cancellationToken)
+    [OpenApiOperation(
+        operationId: "GetCustomerPaymentIntents",
+        tags: new[] { "Payment Management" },
+        Summary = "Retrieve customer payment intents",
+        Description = "Fetches all setup intents and payment methods associated with a customer. Useful for displaying saved payment methods and payment history.",
+        Visibility = OpenApiVisibilityType.Advanced)]
+    [OpenApiParameter(
+        name: "customerId",
+        In = ParameterLocation.Query,
+        Required = true,
+        Type = typeof(string),
+        Description = "Stripe customer ID to retrieve payment intents for (must start with 'cus_')"
+        )]
+    [OpenApiResponseWithBody(
+        statusCode: HttpStatusCode.OK,
+        contentType: "application/json",
+        bodyType: typeof(PaymentIntentResult),
+        Summary = "Payment intents retrieved",
+        Description = "List of setup intents and payment methods for the customer",
+        Example = typeof(PaymentIntentResult))]
+    [OpenApiResponseWithBody(
+        statusCode: HttpStatusCode.NotFound,
+        contentType: "application/json",
+        bodyType: typeof(ErrorResponse),
+        Summary = "Customer not found",
+        Description = "No payment intents found for the specified customer")]
+    [OpenApiResponseWithBody(
+        statusCode: HttpStatusCode.BadRequest,
+        contentType: "application/json",
+        bodyType: typeof(ErrorResponse),
+        Summary = "Invalid customer ID",
+        Description = "Customer ID format is invalid or missing")]
+    [OpenApiResponseWithBody(
+        statusCode: HttpStatusCode.InternalServerError,
+        contentType: "application/json",
+        bodyType: typeof(ErrorResponse),
+        Summary = "Server error",
+        Description = "An unexpected error occurred")]
+    public async Task<IActionResult> GetCustomerPaymentIntents(
+        [HttpTrigger(AuthorizationLevel.Function, "get", Route = "subscription/paymentIntent")] HttpRequest req,
+        CancellationToken cancellationToken)
     {
-
         try
         {
             var customerId = req.Query["customerId"].FirstOrDefault();
             _logger.LogInformation("Get payment intents request for customer: {CustomerId}", customerId);
-
 
             if (string.IsNullOrEmpty(customerId))
             {
@@ -620,76 +1150,12 @@ public class Payment
         }
     }
 
-    [Function("GetProduct")]
-    [OpenApiOperation("GetProduct", tags: new[] { "Subscription Management" })]
-    [OpenApiParameter(name: "productId", In = ParameterLocation.Path, Required = true, Type = typeof(string), Description = "Product ID")]
-    [OpenApiResponseWithBody(HttpStatusCode.OK, "application/json", typeof(DesolaProductDetail), Description = "Product found")]
-    [OpenApiResponseWithBody(HttpStatusCode.NotFound, "application/json", typeof(object), Description = "Product not found")]
-    [OpenApiResponseWithBody(HttpStatusCode.BadRequest, "application/json", typeof(object), Description = "Invalid product ID provided")]
-    public async Task<IActionResult> GetProduct(
-        [HttpTrigger(AuthorizationLevel.Function, "get", Route = "subscription/product/{productId}")] HttpRequest req,
-        string productId,
-        CancellationToken cancellationToken)
-    {
-        _logger.LogInformation("Get product request triggered for product: {ProductId}", productId);
+    #endregion
 
-        try
-        {
-            if (string.IsNullOrWhiteSpace(productId))
-            {
-                return new BadRequestObjectResult(new { error = "Product ID is required" });
-            }
+    #region Authentication Helper
 
-            var result = await _desolaSubscriptionService.GetProductAsync(productId, cancellationToken);
+    private static async Task<(bool authenticationStatus, IActionResult? authenticationResponse)> IsUserAuthenticated(HttpRequest req)
+        => await req.HttpContext.AuthenticateAzureFunctionAsync();
 
-            return result != null
-                ? new OkObjectResult(result)
-                : new NotFoundObjectResult(new { error = $"Product with ID '{productId}' not found" });
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error processing get product request for product: {ProductId}", productId);
-            return new ObjectResult(new { error = "Internal server error" })
-            {
-                StatusCode = StatusCodes.Status500InternalServerError
-            };
-        }
-    }
-
-    [Function("GetProductPrices")]
-    [OpenApiOperation("GetProductPrices", tags: new[] { "Subscription Management" })]
-    [OpenApiParameter(name: "productId", In = ParameterLocation.Path, Required = true, Type = typeof(string), Description = "Product ID")]
-    [OpenApiParameter(name: "activeOnly", In = ParameterLocation.Query, Required = false, Type = typeof(bool), Description = "Filter active prices only")]
-    [OpenApiResponseWithBody(HttpStatusCode.OK, "application/json", typeof(List<DesolaPriceDetail>), Description = "Prices found")]
-    [OpenApiResponseWithBody(HttpStatusCode.NotFound, "application/json", typeof(object), Description = "Product not found")]
-    [OpenApiResponseWithBody(HttpStatusCode.BadRequest, "application/json", typeof(object), Description = "Invalid product ID provided")]
-    public async Task<IActionResult> GetProductPrices(
-        [HttpTrigger(AuthorizationLevel.Function, "get", Route = "subscription/product/{productId}/prices")] HttpRequest req,
-        string productId,
-        CancellationToken cancellationToken)
-    {
-        _logger.LogInformation("Get product prices request triggered for product: {ProductId}", productId);
-
-        try
-        {
-            if (string.IsNullOrWhiteSpace(productId))
-            {
-                return new BadRequestObjectResult(new { error = "Product ID is required" });
-            }
-
-            var activeOnly = !bool.TryParse(req.Query["activeOnly"], out var active) || active;
-
-            var result = await _desolaSubscriptionService.GetProductPricesAsync(productId, activeOnly, cancellationToken);
-
-            return new OkObjectResult(result);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error processing get product prices request for product: {ProductId}", productId);
-            return new ObjectResult(new { error = "Internal server error" })
-            {
-                StatusCode = StatusCodes.Status500InternalServerError
-            };
-        }
-    }
+    #endregion
 }

@@ -24,6 +24,7 @@ public class CreateDirectSubscriptionHandler : IRequestHandler<CreateDirectSubsc
     {
         _logger.LogInformation("Creating direct subscription for: {Email}", request.Email);
 
+
         var customer = await _customerService.GetCustomerAsync(request.Email, cancellationToken);
 
         if (customer == null)
@@ -39,10 +40,27 @@ public class CreateDirectSubscriptionHandler : IRequestHandler<CreateDirectSubsc
             customer = await _customerService.GetCustomerAsync(request.Email, cancellationToken);
         }
 
-        if(request.CustomerId != null && request.CustomerId != customer.StripeCustomerId)
+        try
         {
-            _logger.LogWarning("Provided CustomerId {CustomerId} does not match existing customer Stripe ID {StripeCustomerId}", request.CustomerId, customer.StripeCustomerId);
-            throw new InvalidOperationException($"Provided CustomerId {request.CustomerId} does not match existing customer Stripe ID {customer.StripeCustomerId}");
+            var hasSubscription = await _subscriptionService.GetCustomerSubscriptionsAsync(customer.StripeCustomerId, cancellationToken);
+
+            var statuses = new[] { "active", "trialing" };
+            var subscriptionDetailsEnumerable = hasSubscription.ToList();
+
+            if (subscriptionDetailsEnumerable.Any() &&  statuses.Contains(subscriptionDetailsEnumerable.First().Status.ToLowerInvariant()))
+            {
+                _logger.LogInformation("Customer already has an active subscription: {Email}", request.Email);
+                return new CreateSubscriptionResult
+                {
+                    SubscriptionId = subscriptionDetailsEnumerable.First().Id
+
+                };
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Something is wrong checking customer subscription");
+            throw new Exception("An error occurred while checking the customer's subscription status.", ex);
         }
 
         var subscriptionRequest = new CreateSubscriptionRequest

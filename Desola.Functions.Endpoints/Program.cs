@@ -1,8 +1,10 @@
+using Desola.Functions.Endpoints.Configuration;
 using DesolaDomain.Settings;
 using DesolaInfrastructure;
 using DesolaServices;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Azure.Functions.Worker;
+using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Abstractions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -42,16 +44,72 @@ using Microsoft.Identity.Web;
             services.ConfigureFunctionsApplicationInsights();
         }
 
+        services.AddSingleton<IOpenApiConfigurationOptions>(_ =>
+        {
+            var options = new OpenApiConfiguration();
+            return options;
+        });
+
         services.AddDesolaInfrastructure(appSettings);
         services.AddDesolaApplications(appSettings);
+        //services.AddCors(options =>
+        //{
+        //    options.AddDefaultPolicy(builder =>
+        //    {
+        //        builder.WithOrigins("https://desolatravels.com", "https://www.desolatravels.com", "http://localhost:5173")
+        //            .AllowAnyMethod()
+        //            .AllowAnyHeader();
+        //    });
+        //});
+
         services.AddCors(options =>
         {
-            options.AddDefaultPolicy(builder =>
+            if (context.HostingEnvironment.IsDevelopment())
             {
-                builder.WithOrigins("https://desolatravels.com", "https://www.desolatravels.com", "http://localhost:5173")
-                    .AllowAnyMethod()
-                    .AllowAnyHeader();
-            });
+                //// Development CORS - more permissive
+                //options.AddDefaultPolicy(builder =>
+                //{
+                //    builder.AllowAnyOrigin()
+                //        .AllowAnyMethod()
+                //        .AllowAnyHeader();
+                //});
+
+                // Specific policy for OpenAPI endpoints
+                options.AddPolicy("OpenApiPolicy", builder =>
+                {
+                    builder.WithOrigins(
+                            "http://localhost:7094",
+                            "https://localhost:7094",
+                            "http://localhost:5173",
+                            "https://localhost:5173")
+                        .AllowAnyMethod()
+                        .AllowAnyHeader()
+                        .AllowCredentials();
+                });
+            }
+            else
+            {
+                options.AddDefaultPolicy(builder =>
+                {
+                    builder.WithOrigins(
+                            "https://desolatravels.com",
+                            "https://www.desolatravels.com")
+                        .AllowAnyMethod()
+                        .AllowAnyHeader()
+                        .AllowCredentials();
+                });
+
+                options.AddPolicy("OpenApiPolicy", builder =>
+                {
+                    builder.WithOrigins(
+                            "https://desolatravels.com",
+                            "https://www.desolatravels.com",
+                            "https://desolafunctionsapp.azurewebsites.net")
+                        .AllowAnyMethod()
+                        .AllowAnyHeader()
+                        .AllowCredentials();
+                });
+            }
         });
 
         services.Configure<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme, options =>

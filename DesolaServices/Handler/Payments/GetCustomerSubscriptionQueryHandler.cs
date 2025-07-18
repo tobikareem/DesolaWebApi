@@ -78,7 +78,7 @@ public class GetCustomerSubscriptionQueryHandler : IRequestHandler<GetCustomerSu
                         currentAmount = sub.Amount;
                         currency = sub.Currency;
                         status = sub.Status;
-
+                        subscriptionExpiresAt = sub.SubscriptionEndDate;
                         if (sub.Status == "trialing")
                         {
                             isTrialing = true;

@@ -7,7 +7,7 @@
   </PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="CaptainPayment" Version="1.0.0.3" />
+		<PackageReference Include="CaptainPayment" Version="1.0.0.4" />
 		<PackageReference Include="docfx.console" Version="2.41.0">
 			<ExcludeAssets>build</ExcludeAssets>
 		</PackageReference>

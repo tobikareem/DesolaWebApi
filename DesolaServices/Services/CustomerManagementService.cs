@@ -589,16 +589,17 @@ public class CustomerManagementService : ICustomerManagementService
         try
         {
             var stripeCustomer = await _stripeCustomerService.SearchCustomersAsync(email, cancellationToken);
-
-            var newCustomer = _mapper.Map<Customer>(stripeCustomer);
-            newCustomer.SetTableStorageKeys();
-            newCustomer.PrepareForStorage();
-
+            
             if (string.IsNullOrWhiteSpace(stripeCustomer.Email))
             {
                 return null; // No customer found in Stripe
             }
 
+            var newCustomer = _mapper.Map<Customer>(stripeCustomer);
+            newCustomer.SetTableStorageKeys();
+            newCustomer.PrepareForStorage();
+
+         
             await SafeInsertCustomerAsync(newCustomer);
 
             _logger.LogInformation("Customer created from Stripe data: {Email}", email);

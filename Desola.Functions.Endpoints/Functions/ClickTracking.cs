@@ -34,7 +34,8 @@ public class ClickTracking
 
     [Function("AddClickTracking")]
     [OpenApiOperation(operationId: "ClickTracking", tags: new[] { "track" })]
-    [OpenApiSecurity("function_key", SecuritySchemeType.ApiKey, Name = "code", In = OpenApiSecurityLocationType.Header)]
+    [OpenApiSecurity("function_key", SecuritySchemeType.ApiKey, Name = "x-functions-key", In = (OpenApiSecurityLocationType)ParameterLocation.Header)]
+
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(IEnumerable<object>), Description = "Save the user track.")]
     public async Task<IActionResult> AddClickTracking([HttpTrigger(AuthorizationLevel.Function, "post", Route = "track")] HttpRequest req)
     {
@@ -74,8 +75,9 @@ public class ClickTracking
     }
 
     [Function("GetClickTracking")]
-    [OpenApiOperation(operationId: "ClickTracking", tags: new[] { "track" })]
-    [OpenApiSecurity("function_key", SecuritySchemeType.ApiKey, Name = "code", In = OpenApiSecurityLocationType.Header)]
+    [OpenApiOperation(operationId: "GetTracks", tags: new[] { "track" })]
+    [OpenApiSecurity("function_key", SecuritySchemeType.ApiKey, Name = "x-functions-key", In = (OpenApiSecurityLocationType)ParameterLocation.Header)]
+    [OpenApiParameter(name: "userId", In = ParameterLocation.Path, Required = true, Type = typeof(string), Description = "The unique identifier of the user")]
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json",
         bodyType: typeof(IEnumerable<object>), Description = "Get the user track.")]
     public async Task<IActionResult> GetClickTracking([HttpTrigger(AuthorizationLevel.Function, "get", Route = "track/{userId}")] HttpRequest req, string userId)
@@ -104,8 +106,8 @@ public class ClickTracking
     }
 
     [Function("GetUserClickHistory")]
-    [OpenApiOperation(operationId: "GetUserClickHistory", tags: new[] { "tracking" })]
-    [OpenApiSecurity("function_key", SecuritySchemeType.ApiKey, Name = "code", In = OpenApiSecurityLocationType.Query)]
+    [OpenApiOperation(operationId: "GetUserClickHistory", tags: new[] { "track" })]
+    [OpenApiSecurity("function_key", SecuritySchemeType.ApiKey, Name = "x-functions-key", In = (OpenApiSecurityLocationType)ParameterLocation.Header)]
     [OpenApiParameter(name: "origin", In = ParameterLocation.Query, Required = false, Type = typeof(string), Description = "Filter by flight origin airport code")]
     [OpenApiParameter(name: "destination", In = ParameterLocation.Query, Required = false, Type = typeof(string), Description = "Filter by flight destination airport code")]
     [OpenApiParameter(name: "startDate", In = ParameterLocation.Query, Required = false, Type = typeof(string), Description = "Filter by click date (start, format: yyyy-MM-dd)")]
@@ -163,7 +165,7 @@ public class ClickTracking
             {
                 pageSize = parsedPageSize;
             }
-            
+
             var conditions = new List<string> { $"PartitionKey eq '{userId}'" };
 
             // Add origin filter if provided
